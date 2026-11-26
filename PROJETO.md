@@ -57,7 +57,8 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Ao mudar o app, suba `VERSAO` no index.html (aparece no rodapé).
 
 ## Pendências
-- Maria Gilda (JML) em janeiro: a planilha só tinha os dias 1–3. Norma (nova camareira, desde 16/12) também está sem janeiro.
+- Norma (nova camareira, desde 16/12) está sem janeiro: a governanta preenche.
+- Maria Gilda (JML) em janeiro: a planilha só tinha 1–3; o Gustavo pediu "como dezembro" e foi preenchido R de segunda a sexta, X sábado e domingo (5x2, 42h).
 
 ## Decisões do Gustavo (26/11/2026)
 - Semana de transição 14–20/12/2026 (a lei muda na quarta): segue a regra antiga (44h, 1 folga; excesso = alerta de hora extra), com um alerta
@@ -65,6 +66,14 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Domingo das mulheres (CLT 386) é **alerta**, não bloqueio, e os domingos só contam a partir de 16/12/2026 (`REGRA.domingoDesde`).
 - Cooperadas ficam como estão: `esc_funcionarios.sem_regras` (opção "Cooperada / não CLT" na Equipe) tira a pessoa das regras de horas, folgas e domingos.
 - Mês escrito em maiúsculas e negrito acima da escala, com setas ‹ › para o mês anterior e o seguinte.
+- **A grade tem de parecer a planilha da equipe** ("a ideia é só facilitar fazer a escala sem erros"): nada de siglas (C, A3…) na tela.
+  `tabelaEscala()` monta, para a tela e para a imagem/impressão: seções (`esc_funcionarios.secao`, ordem em `SECOES`), colunas HORÁRIO e
+  APÓS dd/mm (quando o horário muda no mês; o horário de cada pessoa é o mais usado nos dias de trabalho), dias com D/SE/T/Q/Q/SEX/S,
+  dia de trabalho no horário da pessoa em branco (Governança) ou escrito "09–18" (Manutenção) conforme `esc_config.celula`, verde-claro;
+  outro horário escrito; X/BH/FE…; fim de semana cinza-azulado; feriado pêssego; rodapé Manhã/Inter/Tarde/Total no dia (até 9h59, 10h–12h59,
+  a partir de 13h) e totais Trab., X, BH… à direita. As siglas ficam só por dentro (banco e aba Turnos).
+  A paleta tem "Trabalha" (horário da pessoa), os outros horários escritos e os códigos. Escala nova já vem preenchida com o horário de cada pessoa
+  (o líder só marca as folgas), como a planilha em branco.
 - Márcio (JML) em 22→23/01/2027: só 10h36 entre 12–21:24 e 08:00 (bloqueio; o Willian precisa trocar).
 - Cadastrar Recepção e Manutenção (nomes, cargo, sexo) e informar o sexo de todos na Governança.
 - Acessos que faltam: Recepção dos outros prédios (gerente assistente), Manutenção dos outros prédios, Gerente Geral do JML (hoje o Gustavo, admin).

@@ -26,6 +26,7 @@
   --head:#8E4E38; --card-2:#FAF9F7; --hover:#FBFAF8; --field:#fff; --toast:#111114; --fds:#F3EFEA;
   /* cores dos códigos da escala */
   --t0:#F1E4DA; --t0i:#6F3B2A; --t1:#E2ECF5; --t1i:#1F4E79; --t2:#ECE3F3; --t2i:#5B3A7A; --t3:#E4F0E9; --t3i:#2D5E43;
+  --pad:#E3F1DA; --padi:#2F6B2A; --fds2:#E6ECF2; --fer:#FCE3CF;
   --cf:#EFEDEA; --cfi:#5D5751; --cfe:#DDF0F4; --cfei:#155E6E; --caf:#FBE9D9; --cafi:#8A4B12; --cx:#fff; --cxi:#A39C94;
   --r:4px;
   --serif:"Newsreader","Iowan Old Style",Georgia,serif;
@@ -38,6 +39,7 @@
   --ok:#6DBA5F; --ok-bg:#1F2E1B; --warn:#D9B23A; --warn-bg:#332B12; --bad:#EC6A60; --bad-bg:#3A1E1B;
   --head:#5E3324; --card-2:#252220; --hover:#292522; --field:#191715; --toast:#2E2A27; --fds:#221F1D;
   --t0:#3A2A22; --t0i:#EBC0A6; --t1:#1E2C3A; --t1i:#9CC3E6; --t2:#2C2236; --t2i:#CDB1E6; --t3:#1E2E25; --t3i:#9AD2B2;
+  --pad:#1F2E1B; --padi:#9BD08C; --fds2:#22282E; --fer:#3E2A1C;
   --cf:#2A2725; --cfi:#B5ADA4; --cfe:#173036; --cfei:#8ED3E2; --caf:#3A2A1A; --cafi:#EDB57E; --cx:#1E1C1A; --cxi:#6E6760;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -146,10 +148,27 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 .kF{background:var(--cf)!important;color:var(--cfi)} .kFE{background:var(--cfe)!important;color:var(--cfei)}
 .kAF{background:var(--caf)!important;color:var(--cafi)} .kX{background:var(--cx)!important;color:var(--cxi)}
 .kFA{background:var(--bad-bg)!important;color:var(--bad)}
+/* Grade no formato da planilha */
+.grade td.c.kF{background:transparent;color:var(--ink)}
+.grade td.c.kF.fds{background:var(--fds2)} .grade td.c.kF.fer{background:var(--fer)}
+.kpad{background:var(--pad)!important;color:var(--padi)}
+.kout{background:var(--card)!important;color:var(--ink);font-weight:700}
+.grade td.fds{background:var(--fds2)} .grade thead th.fds{background:var(--fds2)}
+.grade td.fer,.grade thead th.fer{background:var(--fer)}
+.grade .hor{font-size:12px;white-space:nowrap;padding:0 8px;color:var(--ink);font-weight:500;background:var(--card)}
+.grade thead .hor{font-size:11px;color:var(--muted)}
+.grade .res{font-size:12px;padding:0 6px;min-width:30px;color:var(--muted)}
+.grade thead th.res{font-size:10px}
+.grade tr.secao th{background:var(--brand-bg);color:var(--brand);text-align:left;font-size:11px;letter-spacing:.14em;padding:5px 10px;font-weight:700}
+.grade tr.secao th span{position:sticky;left:10px}
+.grade.larga td.c{min-width:60px;font-size:11px}
+.grade td.c.kout{font-size:11px}
+.legenda b.lfds{background:var(--fds2)} .legenda b.lfer{background:var(--fer)}
 .pc.k0,.pc.k1,.pc.k2,.pc.k3,.pc.kF,.pc.kFE,.pc.kAF,.pc.kX,.pc.kFA{border-color:transparent}
 .grade thead th.fer{background:#FCE3CF;color:#8A4B12}
 :root[data-theme="dark"] .grade thead th.fer{background:#4A2E1A;color:#EDB57E}
-.grade tfoot td{position:sticky;bottom:0;background:var(--card-2);font-size:12px;font-weight:600;color:var(--muted);height:26px;z-index:1}
+.grade tfoot td{background:var(--card-2);font-size:12px;font-weight:600;color:var(--muted);height:24px}
+.grade tfoot tr:first-child td,.grade tfoot tr:first-child th{border-top:2px solid var(--muted)}
 .grade tfoot .nome{z-index:3;background:var(--card-2);font-weight:600}
 .grade tfoot td.zero{color:var(--bad)}
 .pc.on{border-color:var(--ink)!important}
@@ -225,10 +244,14 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 #exportar{position:fixed;left:-10000px;top:0;background:#fff;color:#111;padding:24px;font:13px/1.35 var(--sans)}
 #exportar h2{margin:0;font:400 24px var(--serif)}
 #exportar .sub{color:#666;margin:2px 0 12px}
+#exportar h2.mes{font:700 26px var(--sans);letter-spacing:.08em;margin:0 0 4px}
 #exportar table{border-collapse:collapse}
-#exportar th,#exportar td{border:1px solid #ccc;text-align:center;padding:4px 5px;min-width:26px}
-#exportar td.n{text-align:left;font-weight:600;white-space:nowrap;padding:4px 8px}
-#exportar th.fds,#exportar td.fds{background:#f1ece6}
+#exportar th,#exportar td{border:1px solid #bbb;text-align:center;padding:3px 4px;min-width:24px;position:static!important;box-shadow:none!important}
+#exportar td.c{height:24px}
+#exportar tr.secao th{text-align:left}
+#exportar td.c::before,#exportar td.c::after{display:none}
+#exportar .grade .nome{min-width:0;max-width:none;white-space:nowrap}
+#exportar .grade tfoot td,#exportar .grade tfoot th{background:#f4f4f4}
 #exportar .marca{color:#B3261E;font-weight:700;letter-spacing:.1em}
 #exportar .ass{display:flex;gap:40px;margin-top:28px}
 #exportar .ass div{border-top:1px solid #333;padding-top:4px;min-width:240px;font-size:12px}
@@ -276,7 +299,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v3';
+const VERSAO = 'v4';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -607,7 +630,7 @@ function validar(){
         // Antes de 16/12/2026 (regra antiga) passar do limite vira hora extra: alerta. Na regra nova, bloqueia.
         const antiga = r.desde < '2026-12-16', n = antiga ? 'a' : 'b';
         const msg = `${per}: ${hm(min)} de trabalho; o limite é ${r.horas}h por semana${antiga ? ` (${hm(min - r.horas * 60)} de hora extra)` : ''}`;
-        add(n, f, msg); ds.forEach((d, i) => xs[i].tipo === 'trab' && marca(f.id, d, n, msg));
+        add(n, f, msg); if (!antiga) ds.forEach((d, i) => xs[i].tipo === 'trab' && marca(f.id, d, n, msg));
       }
       const precisa = Math.max(0, r.folgas - desconhecidos);
       if (folgas < precisa) {
@@ -693,13 +716,125 @@ function validar(){
 
 const cobertura = dep => (((D.config || {})[dep] || {}).cobertura) || {};
 const fechaDomingo = dep => !!((D.config || {})[dep] || {}).fecha_domingo;
-// Departamento fechado no domingo: domingos vazios já entram como folga (salvos na próxima mudança)
+const celulaEstilo = dep => ((D.config || {})[dep] || {}).celula || (dep === 'manutencao' ? 'horario' : 'vazio');
+// Preenchimento automático (salvo na próxima mudança):
+// escala nova: todo dia = horário da pessoa (como a planilha em branco), e X no domingo se o departamento não abre;
+// escala existente: só os domingos vazios dos departamentos fechados no domingo.
 function preencherDomingos(){
-  if (!fechaDomingo(DEP) || !editavel()) return;
+  if (!editavel()) return;
+  const nova = !E.escala;
+  if (!nova && !fechaDomingo(DEP)) return;
   for (const f of funcionariosDaEscala().filter(f => f.ativo)) {
     const g = GRADE[f.id] = GRADE[f.id] || {};
-    for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) if (dow(d) === 0 && !g[d]) g[d] = 'X';
+    for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) {
+      if (g[d]) continue;
+      if (dow(d) === 0 && fechaDomingo(DEP)) g[d] = 'X';
+      else if (nova && f.turno_padrao && turnoEm(f.turno_padrao, d)) g[d] = f.turno_padrao;
+    }
   }
+}
+
+/* ===== Como a planilha: horários escritos, seções, "Horário" ao lado do nome ===== */
+const hhmm2 = m => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); };
+const hhCurto = m => { m = ((m % 1440) + 1440) % 1440; const h = String(Math.floor(m / 60)).padStart(2, '0'); return m % 60 ? h + ':' + String(m % 60).padStart(2, '0') : h; };
+const horaCurta = (t, iso) => { const j = jornada(t, iso); return hhCurto(j.ini) + '–' + hhCurto(j.fim); };      // 09–18, 08–17:24
+const horaLonga = (t, iso) => { const j = jornada(t, iso); return hhmm2(j.ini) + ' às ' + hhmm2(j.fim); };       // 09:00 às 17:20
+// Dia do mês em que algum horário do departamento muda (ex.: 16/12/2026); null se não muda
+function corteDoMes(){
+  const fim = fimDoMes(MES);
+  const ds = D.turnos.filter(t => doDep(t, DEP) && t.desde && t.desde > MES && t.desde <= fim).map(t => t.desde).sort();
+  return ds[0] || null;
+}
+// Horário de cada pessoa em cada parte do mês: o mais usado nos dias de trabalho (ou o turno padrão)
+function horariosPessoa(f, corte){
+  const partes = corte ? [[MES, addDias(corte, -1)], [corte, fimDoMes(MES)]] : [[MES, fimDoMes(MES)]];
+  return partes.map(([a, b]) => {
+    const n = {};
+    for (let d = a; d <= b; d = addDias(d, 1)) {
+      const c = (GRADE[f.id] || {})[d], t = c && !OUTROS[c] && turnoEm(c, d);
+      if (t) { const k = horaLonga(t, d); n[k] = (n[k] || 0) + 1; }
+    }
+    const top = Object.entries(n).sort((x, y) => y[1] - x[1])[0];
+    if (top) return top[0];
+    const t = f.turno_padrao && (turnoEm(f.turno_padrao, b) || turnoEm(f.turno_padrao, a));
+    return t ? horaLonga(t, b) : '';
+  });
+}
+// O que aparece numa célula
+function celInfo(f, d, hor, corte){
+  const c = (GRADE[f.id] || {})[d] || '';
+  if (!c) return { c, txt: '', cls: 'vazio' };
+  if (OUTROS[c]) return { c, txt: c, cls: OUTROS[c].cls };
+  const t = turnoEm(c, d);
+  if (!t) return { c, txt: '?', cls: 'kFA' };
+  const padrao = horaLonga(t, d) === hor[corte && d >= corte ? 1 : 0];
+  return { c, txt: padrao && celulaEstilo(DEP) === 'vazio' ? '' : horaCurta(t, d), cls: padrao ? 'kpad' : 'kout', padrao };
+}
+// Sigla que dá o horário da pessoa naquele dia (para o botão "Trabalha")
+function padraoSigla(f, d){
+  const hor = horariosPessoa(f, corteDoMes())[corteDoMes() && d >= corteDoMes() ? 1 : 0];
+  const t = versoesDoDep(DEP, d, d).find(t => vale(t, d) && horaLonga(t, d) === hor);
+  return t ? t.sigla : (f.turno_padrao && turnoEm(f.turno_padrao, d) ? f.turno_padrao : null);
+}
+// Outros horários do departamento para a paleta, escritos como na planilha (sem repetir)
+function horariosPaleta(){
+  const fim = fimDoMes(MES), out = [];
+  for (const t of turnosDoDep(DEP)) {
+    const dRef = t.ate && t.ate < fim ? t.ate : fim, rot = horaCurta(t, dRef);
+    if (!out.some(o => o.rotulo === rot)) out.push({ sigla: t.sigla, rotulo: rot, texto: textoSigla(t.sigla, DEP) });
+  }
+  return out;
+}
+const SECOES = ['LÍDER', 'RECEPÇÃO', 'CAMAREIRA', 'ROUPARIA', 'ROUPARIA / SUPERVISORA', 'EQUIPE ASG', 'MANUTENCISTA', 'GOVERNANTA'];
+const ordemSecao = s => { const i = SECOES.indexOf(s); return i < 0 ? 50 : i; };
+const SEM_PLAN = ['D', 'SE', 'T', 'Q', 'Q', 'SEX', 'S'];
+const PERIODOS = [['Manhã', 0, 600], ['Inter', 600, 780], ['Tarde', 780, 1440]]; // até 9h59, 10h–12h59, a partir de 13h
+
+function tabelaEscala({ ed = false, marcas = false } = {}){
+  const corte = corteDoMes(), dias = V.dias, funcs = V.funcs;
+  const usados = Object.keys(OUTROS).filter(k => k === 'X' || funcs.some(f => dias.some(d => (GRADE[f.id] || {})[d] === k)));
+  const larg = celulaEstilo(DEP) === 'horario' ? 'larga' : '';
+  let h = `<table class="grade ${larg}" id="grade"><thead><tr><th class="nome">EQUIPE</th><th class="hor">HORÁRIO</th>${corte ? `<th class="hor">APÓS ${ddmm(corte)}</th>` : ''}`;
+  for (const d of dias) {
+    const w = dow(d), cov = V.diaCob[d], fer = FERIADOS[d];
+    const tit = [fer ? 'Feriado: ' + fer : '', cov ? 'Abaixo do mínimo: ' + cov.join(', ') : ''].filter(Boolean).join('\n');
+    h += `<th class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${fer ? 'fer' : ''} ${cov ? 'cov' : ''}" ${tit ? `title="${esc(tit)}"` : ''}>${SEM_PLAN[w]}<b>${+d.slice(8)}</b></th>`;
+  }
+  h += `<th class="res">Trab.</th>${usados.map(k => `<th class="res">${k === 'F' ? 'Falta' : k}</th>`).join('')}</tr></thead><tbody>`;
+  const ncol = 2 + (corte ? 1 : 0) + dias.length + 1 + usados.length;
+  // Seções na ordem da planilha
+  const secoes = [];
+  for (const f of funcs) { const s = f.secao || (f.cargo || 'EQUIPE').toUpperCase(); let x = secoes.find(x => x.nome === s); if (!x) secoes.push(x = { nome: s, fs: [] }); x.fs.push(f); }
+  secoes.sort((a, b) => (ordemSecao(a.nome) - ordemSecao(b.nome)) || (Math.min(...a.fs.map(f => f.ordem)) - Math.min(...b.fs.map(f => f.ordem))));
+  for (const s of secoes) {
+    h += `<tr class="secao"><th colspan="${ncol}"><span>${esc(s.nome)}</span></th></tr>`;
+    for (const f of s.fs) {
+      const hor = horariosPessoa(f, corte), t = V.totais[f.id];
+      const avisoSexo = marcas && !f.sem_regras && !f.sexo ?' <span class="sx falta" title="Informe na aba Equipe se é mulher ou homem">sexo?</span>' : '';
+      h += `<tr><th class="nome" title="${esc(`${f.cargo || ''} · ${hm(t.min)} no mês${f.sem_regras ? ' · não CLT' : ''}`)}">${esc(f.nome)}${f.ativo ? '' : ' <span class="tagx">inativo</span>'}${avisoSexo}</th>
+        <td class="hor">${esc(hor[0] || '—')}</td>${corte ? `<td class="hor">${esc(hor[1] || '—')}</td>` : ''}`;
+      const cont = {}; let trab = 0;
+      for (const d of dias) {
+        const w = dow(d), m = marcas && V.cel[f.id + '|' + d], ci = celInfo(f, d, hor, corte);
+        if (ci.c && !OUTROS[ci.c]) trab++; else if (ci.c) cont[ci.c] = (cont[ci.c] || 0) + 1;
+        h += `<td class="c ${ed ? '' : 'ro'} ${ci.cls} ${[0, 6].includes(w) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${w === 1 ? 'seg' : ''} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (ci.c && !OUTROS[ci.c] && turnoEm(ci.c, d) ? ' · ' + horaLonga(turnoEm(ci.c, d), d) : ci.c ? ' · ' + OUTROS[ci.c].nome : '') + (m ? '\n' + m.msgs.join('\n') : ''))}">${esc(ci.txt)}</td>`;
+      }
+      h += `<td class="res num">${trab}</td>${usados.map(k => `<td class="res num">${cont[k] || ''}</td>`).join('')}</tr>`;
+    }
+  }
+  // Rodapé como o da planilha: quantos por período e no dia
+  const periodoDe = (t, d) => { const ini = jornada(t, d).ini % 1440; return PERIODOS.findIndex(p => ini >= p[1] && ini < p[2]); };
+  const temPer = PERIODOS.map((p, i) => versoesDoDep(DEP, MES, fimDoMes(MES)).some(t => periodoDe(t, t.desde || MES) === i));
+  const linhas = PERIODOS.map((p, i) => [p[0], i]).filter((_, i) => temPer[i]).concat([['Total no dia', -1]]);
+  h += `</tbody><tfoot>`;
+  for (const [rot, i] of linhas) {
+    h += `<tr><th class="nome">${rot}</th><td class="hor"></td>${corte ? '<td class="hor"></td>' : ''}${dias.map(d => {
+      const n = funcs.filter(f => { const c = (GRADE[f.id] || {})[d], t = c && !OUTROS[c] && turnoEm(c, d); return t && (i < 0 || periodoDe(t, d) === i); }).length;
+      const fechado = dow(d) === 0 && fechaDomingo(DEP);
+      return `<td class="${n || fechado || i >= 0 ? '' : 'zero'} ${[0, 6].includes(dow(d)) ? 'fds' : ''}">${n}</td>`;
+    }).join('')}<td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}</tr>`;
+  }
+  return h + `</tfoot></table>`;
 }
 
 /* ================= Aba Escala ================= */
@@ -739,12 +874,14 @@ function renderEscala(){
   h += `<div class="toolbar"><span class="hint grow" id="salvoInfo"></span>${acts.join('')}
     <button class="btn sec" id="bImagem">Imagem (WhatsApp)</button><button class="btn sec" id="bImprimir">Imprimir / PDF</button></div>`;
 
-  // Paleta
-  const tds = turnosDoDep(DEP);
+  // Paleta: horário da pessoa, outros horários (escritos como na planilha) e os códigos da equipe
   if (ed && V.funcs.length) {
-    const cods = tds.map(t => [t.sigla, corTurno(t.sigla), t.nome]).concat(Object.entries(OUTROS).map(([k, o]) => [k, o.cls, o.nome.split(' (')[0]]));
+    const outros = horariosPaleta();
+    const cods = [['*', 'kpad', 'Trabalha', 'No horário da própria pessoa (como a célula em branco da planilha)']]
+      .concat(outros.map(o => [o.sigla, 'kout', o.rotulo, `Outro horário: ${o.texto}`]))
+      .concat(Object.entries(OUTROS).map(([k, o]) => [k, o.cls, k, o.nome]));
     if (!cods.some(c => c[0] === PINCEL) && PINCEL !== '') PINCEL = 'X';
-    h += `<div class="paleta" id="paleta"><span class="lbl">Pincel</span>${cods.map(([k, cls, n]) => `<button class="pc ${cls} ${PINCEL === k ? 'on' : ''}" data-k="${k}" title="${esc(n)}">${k}<small>${esc(n)}</small></button>`).join('')}
+    h += `<div class="paleta" id="paleta"><span class="lbl">Marcar</span>${cods.map(([k, cls, rot, n]) => `<button class="pc ${cls} ${PINCEL === k ? 'on' : ''}" data-k="${esc(k)}" title="${esc(n)}">${esc(rot)}${OUTROS[k] ? `<small>${esc(OUTROS[k].nome.split(' (')[0])}</small>` : ''}</button>`).join('')}
       <button class="pc apagar ${PINCEL === '' ? 'on' : ''}" data-k="" title="Apagar">Apagar</button>
       <span class="grow"></span>
       <button class="btn link" id="bRepetir" title="Copia os dias 1 a 7 para o resto do mês (mesmo dia da semana)">Repetir 1ª semana</button>
@@ -756,35 +893,15 @@ function renderEscala(){
     $('#conteudo').innerHTML = h; ligarEscala(); return;
   }
 
-  // Grade
-  h += `<div class="wrap" id="wrap"><table class="grade" id="grade"><thead><tr><th class="nome">Funcionário</th>`;
-  for (const d of V.dias) {
-    const w = dow(d), cov = V.diaCob[d], fer = FERIADOS[d];
-    const tit = [fer ? 'Feriado: ' + fer : '', cov ? 'Abaixo do mínimo: ' + cov.join(', ') : ''].filter(Boolean).join('\n');
-    h += `<th class="${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'dom' : ''} ${w === 1 ? 'seg' : ''} ${fer ? 'fer' : ''} ${cov ? 'cov' : ''}" ${tit ? `title="${esc(tit)}"` : ''}>${SEM[w]}<b>${+d.slice(8)}</b></th>`;
-  }
-  h += `<th>Horas</th><th>Folgas</th></tr></thead><tbody>`;
-  for (const f of V.funcs) {
-    const t = V.totais[f.id];
-    h += `<tr><th class="nome">${esc(f.nome)}${f.ativo ? '' : ' <span class="tagx">inativo</span>'}<small>${f.sem_regras ? '<span class="sx">Não CLT</span>' : `<span class="sx ${f.sexo ? '' : 'falta'}">${f.sexo === 'F' ? 'Mulher' : f.sexo === 'M' ? 'Homem' : 'Sexo?'}</span>`} · ${esc(f.cargo || '')}</small></th>`;
-    for (const d of V.dias) {
-      const c = (GRADE[f.id] || {})[d] || '', w = dow(d), m = V.cel[f.id + '|' + d];
-      h += `<td class="c ${ed ? '' : 'ro'} ${clsCod(c)} ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${c ? '' : 'vazio'} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (m ? '\n' + m.msgs.join('\n') : ''))}">${c}</td>`;
-    }
-    h += `<td class="tot num">${hm(t.min)}</td><td class="tot num">${t.folgas}${t.domFolga ? ` <small title="domingos de folga">(${t.domFolga} dom)</small>` : ''}</td></tr>`;
-  }
-  // Rodapé: quantos trabalham em cada dia (e em cada turno, no título)
-  h += `</tbody><tfoot><tr><td class="nome">Trabalhando</td>${V.dias.map(d => {
-    const cs = V.funcs.map(f => (GRADE[f.id] || {})[d]).filter(c => c && !OUTROS[c]);
-    const por = {}; cs.forEach(c => por[c] = (por[c] || 0) + 1);
-    return `<td class="${cs.length ? '' : 'zero'}" title="${esc(Object.entries(por).map(([k, n]) => `${k}: ${n}`).join(', ') || 'ninguém')}">${cs.length}</td>`;
-  }).join('')}<td></td><td></td></tr></tfoot></table></div>`;
+  // Grade no formato da planilha
+  h += `<div class="wrap" id="wrap">${tabelaEscala({ ed, marcas: true })}</div>`;
 
-  // Legenda (cada sigla com as versões do mês) e feriados do mês
+  // Legenda, como a da planilha
   const fers = V.dias.filter(d => FERIADOS[d]);
-  h += `<div class="legenda">${tds.map(t => { const j = jornada(t, t.desde || MES); return `<span><b class="${corTurno(t.sigla)}">${t.sigla}</b>${esc(t.nome)} ${textoSigla(t.sigla, DEP)} · ${hm(j.trab)} + ${t.intervalo_min} min de intervalo</span>`; }).join('')}
+  h += `<div class="legenda"><span><b class="kpad">&nbsp;&nbsp;</b>${celulaEstilo(DEP) === 'vazio' ? 'Em branco = trabalha no horário da pessoa' : 'Verde-claro = horário da pessoa'}</span>
     ${Object.entries(OUTROS).map(([k, o]) => `<span><b class="${o.cls}">${k}</b>${esc(o.nome)}</span>`).join('')}
-    ${fers.length ? `<span><b style="background:#FCE3CF;color:#8A4B12">dia</b>Feriado: ${fers.map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}</span>` : ''}</div>`;
+    <span><b class="lfds">&nbsp;&nbsp;</b>Fim de semana</span>
+    ${fers.length ? `<span><b class="lfer">&nbsp;&nbsp;</b>Feriado: ${fers.map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}</span>` : ''}</div>`;
   const r = regraEm(segundaDe(fimDoMes(MES))), r0 = regraEm(MES);
   h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de transição; a partir de ${ddmm(segundaDe(addDias(r.desde, 6)))} ${esc(r.nome)}`}. Semanas de segunda a domingo (linha mais grossa = segunda-feira).</p>`;
 
@@ -819,10 +936,19 @@ function ligarEscala(){
   let pintando = false;
   const pinta = td => {
     const f = td.dataset.f, d = td.dataset.d; if (!f) return;
+    const func = V.funcs.find(x => x.id === f);
+    let cod = PINCEL;
+    if (cod === '*') { cod = padraoSigla(func, d); if (!cod) { toast(`${func.nome} não tem horário cadastrado (aba Equipe, "Turno mais comum")`, true); return; } }
+    else if (cod && !OUTROS[cod] && !turnoEm(cod, d)) {
+      // mesmo horário com outra versão nesse dia (ex.: antes de 16/12): usa a versão que vale
+      toast('Esse horário não vale nesse dia', true); return;
+    }
     GRADE[f] = GRADE[f] || {};
-    if ((GRADE[f][d] || '') === PINCEL) return;
-    if (PINCEL) GRADE[f][d] = PINCEL; else delete GRADE[f][d];
-    td.textContent = PINCEL; td.className = `c ${clsCod(PINCEL)} ${[0, 6].includes(dow(d)) ? 'fds' : ''} ${dow(d) === 1 ? 'seg' : ''} ${PINCEL ? '' : 'vazio'}`;
+    if ((GRADE[f][d] || '') === cod) return;
+    if (cod) GRADE[f][d] = cod; else delete GRADE[f][d];
+    const t = cod && !OUTROS[cod] && turnoEm(cod, d);
+    td.textContent = PINCEL === '*' && celulaEstilo(DEP) === 'vazio' ? '' : t ? horaCurta(t, d) : cod;
+    td.className = `c ${PINCEL === '*' ? 'kpad' : t ? 'kout' : cod ? OUTROS[cod].cls : 'vazio'} ${[0, 6].includes(dow(d)) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${dow(d) === 1 ? 'seg' : ''}`;
     mudou();
   };
   g.addEventListener('pointerdown', e => { const td = e.target.closest('td.c'); if (!td) return; pintando = e.pointerType === 'mouse'; pinta(td); });
@@ -910,13 +1036,13 @@ async function acao(a, motivo, resumo){
 
 /* ================= Exportar (imagem e impressão) ================= */
 function montarExport(){
-  const st = E.escala ? E.escala.status : 'nova', tds = D.turnos;
-  const funcs = funcionariosDaEscala(), dias = []; for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) dias.push(d);
-  let h = `<h2 style="font:700 26px var(--sans);letter-spacing:.08em;margin:0 0 4px">${esc(nomeMes(MES).toUpperCase())}</h2><h2>Escala ${esc(DEPTOS[DEP])} · ${esc(nomePredio())}</h2>
+  const st = E.escala ? E.escala.status : 'nova';
+  V = validar();
+  const dias = V.dias;
+  let h = `<h2 class="mes">${esc(nomeMes(MES).toUpperCase())}</h2><h2>Escala de trabalho · ${esc(nomePredio())} · ${esc(DEPTOS[DEP])}</h2>
     <div class="sub">${st === 'aprovada' ? `Aprovada por ${esc(E.escala.aprovada_por)} em ${quando(E.escala.aprovada_em)}` : `<span class="marca">${st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA'}</span>`}</div>
-    <table><thead><tr><th></th>${dias.map(d => `<th class="${[0, 6].includes(dow(d)) ? 'fds' : ''}">${SEM[dow(d)]}<br>${+d.slice(8)}</th>`).join('')}</tr></thead><tbody>`;
-  for (const f of funcs) h += `<tr><td class="n">${esc(f.nome)}</td>${dias.map(d => { const c = (GRADE[f.id] || {})[d] || ''; return `<td class="${clsCod(c)} ${[0, 6].includes(dow(d)) ? 'fds' : ''}" style="font-weight:700">${c}</td>`; }).join('')}</tr>`;
-  h += `</tbody></table><div style="margin-top:10px;font-size:12px">${turnosDoDep(DEP).map(t => `<b>${t.sigla}</b> ${esc(t.nome)} ${textoSigla(t.sigla, DEP)}`).join(' · ')}<br>${Object.entries(OUTROS).filter(([k]) => k !== 'NA').map(([k, o]) => `<b>${k}</b> ${o.nome}`).join(' · ')}${dias.some(d => FERIADOS[d]) ? `<br>Feriados: ${dias.filter(d => FERIADOS[d]).map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}` : ''}</div>
+    ${tabelaEscala({ ed: false, marcas: false })}
+    <div style="margin-top:10px;font-size:12px">Legenda: ${celulaEstilo(DEP) === 'vazio' ? 'em branco = trabalha no horário da pessoa' : 'horário = trabalho (verde-claro = horário da pessoa)'} · ${Object.entries(OUTROS).filter(([k]) => k !== 'NA').map(([k, o]) => `<b>${k}</b> = ${o.nome.toLowerCase()}`).join(' · ')} · fundo cinza-azulado = fim de semana${dias.some(d => FERIADOS[d]) ? ` · fundo pêssego = feriado (${dias.filter(d => FERIADOS[d]).map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')})` : ''}</div>
     <div class="ass"><div>Montada por ${esc((E.escala && (E.escala.enviada_por || E.escala.salvo_por)) || '')}</div><div>Aprovada por ${esc((E.escala && E.escala.aprovada_por) || '')}</div></div>`;
   $('#exportar').innerHTML = h;
 }
@@ -969,14 +1095,15 @@ function editarFunc(f){
     <div class="grid2"><label class="fld">Cargo<input id="fCargo" value="${esc(f.cargo || '')}" placeholder="Ex.: Recepcionista"></label>
     <label class="fld">Sexo<select id="fSexo"><option value="">—</option><option value="F" ${f.sexo === 'F' ? 'selected' : ''}>Mulher</option><option value="M" ${f.sexo === 'M' ? 'selected' : ''}>Homem</option></select></label></div>
     <div class="grid2"><label class="fld">Departamento<select id="fDep">${deps.map(d => `<option value="${d}" ${d === f.departamento ? 'selected' : ''}>${DEPTOS[d]}</option>`).join('')}</select></label>
-    <label class="fld">Turno mais comum<select id="fTurno"><option value="">—</option>${D.turnos.map(t => `<option value="${t.sigla}" ${t.sigla === f.turno_padrao ? 'selected' : ''}>${t.sigla} · ${esc(t.nome)}</option>`).join('')}</select></label></div>
+    <label class="fld">Horário da pessoa<select id="fTurno"><option value="">—</option>${turnosDoDep(f.departamento || DEP, '0000-01-01', '9999-12-31').map(t => `<option value="${t.sigla}" ${t.sigla === f.turno_padrao ? 'selected' : ''}>${esc(textoSigla(t.sigla, f.departamento || DEP, '0000-01-01', '9999-12-31'))} · ${esc(t.nome)}</option>`).join('')}</select></label></div>
+    <label class="fld">Seção na escala<input id="fSecao" list="lSecoes" value="${esc(f.secao || '')}" placeholder="Ex.: CAMAREIRA, EQUIPE ASG, MANUTENCISTA"><datalist id="lSecoes">${[...new Set(SECOES.concat(D.funcionarios.map(x => x.secao).filter(Boolean)))].map(s => `<option value="${esc(s)}">`).join('')}</datalist></label>
     <label class="chk"><input type="checkbox" id="fSemRegras" ${f.sem_regras ? 'checked' : ''}> Cooperada / não CLT (fica fora das regras de horas, folgas e domingos)</label>
     ${f.id ? `<label class="chk"><input type="checkbox" id="fAtivo" ${f.ativo ? 'checked' : ''}> Ativo (desmarque quando sair da equipe)</label>` : ''}
     <div class="acts"><button class="btn" id="ok">Salvar</button></div>`);
   ov.querySelector('#ok').onclick = async () => {
     const p = { id: f.id || null, nome: ov.querySelector('#fNome').value, cargo: ov.querySelector('#fCargo').value, sexo: ov.querySelector('#fSexo').value,
       departamento: ov.querySelector('#fDep').value, turno_padrao: ov.querySelector('#fTurno').value, ativo: f.id ? ov.querySelector('#fAtivo').checked : true,
-      sem_regras: ov.querySelector('#fSemRegras').checked };
+      sem_regras: ov.querySelector('#fSemRegras').checked, secao: ov.querySelector('#fSecao').value };
     if (!p.nome.trim()) { toast('Informe o nome', true); return; }
     try { await rpc('esc_funcionario_salvar', { p_pin: S.pin, p_predio: PREDIO, p }); ov.remove(); toast('Salvo'); await recarregarDados(); }
     catch (e) { toast(e.message, true); }
