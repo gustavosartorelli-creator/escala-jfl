@@ -1,0 +1,1042 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8E4E38">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Escalas">
+<title>Escalas · JFL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(function(){ var t; try { t = JSON.parse(localStorage.getItem('esc_tema')); } catch (e) {}
+  if (t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  document.documentElement.dataset.theme = t; })();
+</script>
+<style>
+:root{
+  --jfl-bronze:#AF8668; --bg:#F5F3F0; --card:#fff; --ink:#111114; --muted:#7A746D; --line:#E3DED8;
+  --brand:#8E4E38; --brand-dk:#6F3B2A; --brand-bg:#F6ECE7;
+  --ok:#2F6B2A; --ok-bg:#E4F0DE; --warn:#8A6D00; --warn-bg:#FFF5CC; --bad:#B3261E; --bad-bg:#FBE4E1;
+  --head:#8E4E38; --card-2:#FAF9F7; --hover:#FBFAF8; --field:#fff; --toast:#111114; --fds:#F3EFEA;
+  /* cores dos códigos da escala */
+  --t0:#F1E4DA; --t0i:#6F3B2A; --t1:#E2ECF5; --t1i:#1F4E79; --t2:#ECE3F3; --t2i:#5B3A7A; --t3:#E4F0E9; --t3i:#2D5E43;
+  --cf:#EFEDEA; --cfi:#5D5751; --cfe:#DDF0F4; --cfei:#155E6E; --caf:#FBE9D9; --cafi:#8A4B12; --cx:#fff; --cxi:#A39C94;
+  --r:4px;
+  --serif:"Newsreader","Iowan Old Style",Georgia,serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --jfl-bronze:#C29A7B; --bg:#141312; --card:#1E1C1A; --ink:#ECE8E3; --muted:#A1998F; --line:#34302C;
+  --brand:#D28C6E; --brand-dk:#E3A688; --brand-bg:#2C211C;
+  --ok:#6DBA5F; --ok-bg:#1F2E1B; --warn:#D9B23A; --warn-bg:#332B12; --bad:#EC6A60; --bad-bg:#3A1E1B;
+  --head:#5E3324; --card-2:#252220; --hover:#292522; --field:#191715; --toast:#2E2A27; --fds:#221F1D;
+  --t0:#3A2A22; --t0i:#EBC0A6; --t1:#1E2C3A; --t1i:#9CC3E6; --t2:#2C2236; --t2i:#CDB1E6; --t3:#1E2E25; --t3i:#9AD2B2;
+  --cf:#2A2725; --cfi:#B5ADA4; --cfe:#173036; --cfei:#8ED3E2; --caf:#3A2A1A; --cafi:#EDB57E; --cx:#1E1C1A; --cxi:#6E6760;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 var(--sans)}
+button{font:inherit;cursor:pointer;border:0;border-radius:var(--r)}
+input,select,textarea{font:inherit}
+.hidden{display:none!important}
+.logo{display:block;fill:currentColor}
+.num{font-variant-numeric:tabular-nums}
+
+header.top{position:sticky;top:0;z-index:15;background:var(--head);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 20px 12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header.top .logo{width:30px;height:24px;flex:none}
+header.top .divider{width:1px;height:28px;background:rgba(255,255,255,.25)}
+header.top .logo-predio{height:28px;width:auto;max-width:90px;object-fit:contain;flex:none}
+header.top h1{font-size:16px;margin:0;font-weight:500;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header.top .sub{font-size:12px;color:rgba(255,255,255,.72);font-weight:500;text-transform:uppercase;letter-spacing:.12em}
+header.top select{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:var(--r);padding:5px 8px;font-size:13px}
+header.top select option{color:var(--ink);background:var(--card)}
+.btn-ghost{background:transparent;color:#fff;padding:6px 12px;font-size:13px;border:1px solid rgba(255,255,255,.4)}
+.btn-ghost.ico{padding:6px 9px;line-height:1}
+.btn-ghost.ico svg{display:block;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+main{max-width:1400px;margin:0 auto;padding:20px}
+@media(max-width:560px){ main{padding:16px} header.top{padding-left:16px;padding-right:16px;gap:10px} header.top h1{min-width:calc(100% - 90px);white-space:normal;line-height:1.25} header.top #divPredio{display:none} }
+
+#login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--head);color:#fff}
+#login .logo{width:74px;height:60px;margin-bottom:22px}
+#login h2{margin:0 0 2px;font:400 26px/1.2 var(--serif)}
+#login h2 i{color:var(--jfl-bronze)}
+#login p{margin:0 0 28px;color:rgba(255,255,255,.72);font-size:13px;text-transform:uppercase;letter-spacing:.14em}
+.pins{display:flex;gap:16px;margin-bottom:12px}
+.pins span{width:14px;height:14px;border-radius:50%;border:1px solid rgba(255,255,255,.6)}
+.pins span.on{background:#fff;border-color:#fff}
+.pins.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#loginMsg{min-height:22px;font-size:14px;color:#FFE0C2;margin-bottom:12px}
+.pad{display:grid;grid-template-columns:repeat(3,74px);gap:14px}
+.pad button{height:74px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.3);color:#fff;font:300 28px var(--sans)}
+.pad button:active{background:rgba(255,255,255,.3)}
+.pad .txt{font-size:18px;border:0}
+.assinatura{text-align:center;font-size:11px;letter-spacing:.08em;color:var(--muted);padding:8px 16px 28px}
+#login .assinatura{color:rgba(255,255,255,.55);margin-top:28px;padding:0}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tabs button{background:none;padding:10px 14px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;border-radius:0;white-space:nowrap}
+.tabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
+.deps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.dep{background:var(--card);border:1px solid var(--line);padding:8px 14px;text-align:left;color:var(--ink);min-width:150px}
+.dep b{display:block;font-size:14px}
+.dep small{font-size:12px;color:var(--muted)}
+.dep.on{border-color:var(--brand);box-shadow:inset 0 -3px 0 var(--brand)}
+.pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:10px;background:var(--cf);color:var(--cfi)}
+.pill.aprovada{background:var(--ok-bg);color:var(--ok)} .pill.enviada{background:var(--warn-bg);color:var(--warn)}
+.pill.devolvida{background:var(--bad-bg);color:var(--bad)} .pill.rascunho{background:var(--brand-bg);color:var(--brand)}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.toolbar .grow{flex:1}
+.btn{background:var(--head);color:#fff;padding:9px 14px;font-size:14px;font-weight:600}
+.btn.sec{background:var(--card);color:var(--brand);border:1px solid var(--brand)}
+.btn.ok{background:var(--ok);color:#fff}
+.btn.danger{background:var(--card);color:var(--bad);border:1px solid var(--bad)}
+.btn.link{background:none;color:var(--muted);text-decoration:underline;padding:6px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.hint{font-size:13px;color:var(--muted)}
+.aviso{border:1px solid var(--line);border-left:4px solid var(--brand);background:var(--card);border-radius:var(--r);padding:10px 14px;font-size:14px;margin-bottom:12px}
+.aviso.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+.aviso.ok{border-left-color:var(--ok);background:var(--ok-bg)}
+.aviso.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+
+/* Paleta (pincel) */
+.paleta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;position:sticky;top:var(--hdr,64px);z-index:8;background:var(--bg);padding:6px 0}
+.paleta .lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-right:4px}
+.pc{min-width:44px;padding:6px 10px;font-weight:700;font-size:14px;border:2px solid transparent}
+.pc small{font-weight:500;font-size:11px;margin-left:4px;opacity:.85}
+.pc.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--card) inset}
+
+/* Grade */
+.wrap{overflow:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--card);max-height:calc(100vh - 220px)}
+table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select:none}
+.grade th,.grade td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);text-align:center;padding:0}
+.grade thead th{position:sticky;top:0;background:var(--card-2);z-index:3;font-weight:600;font-size:11px;color:var(--muted);padding:4px 0;min-width:34px}
+.grade thead th b{display:block;font-size:13px;color:var(--ink)}
+.grade thead th.fds{background:var(--fds)}
+.grade thead th.dom b{color:var(--brand)}
+.grade thead th.cov{background:var(--warn-bg)}
+.grade .nome{position:sticky;left:0;background:var(--card);z-index:2;text-align:left;padding:6px 10px;min-width:170px;max-width:220px;font-size:13px;font-weight:600}
+.grade thead .nome{z-index:4;background:var(--card-2)}
+.grade .nome small{display:block;font-weight:400;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grade .nome .sx{font-weight:700;color:var(--brand)}
+.grade .nome .sx.falta{color:var(--bad)}
+.grade td.c{height:34px;min-width:34px;font-weight:700;cursor:pointer;position:relative}
+.grade td.c.ro{cursor:default}
+.grade td.seg,.grade th.seg{border-left:2px solid var(--muted)}
+.grade td.fds{background:var(--fds)}
+.grade td.vazio::after{content:"";position:absolute;inset:7px;border:1px dashed var(--line);border-radius:3px}
+.grade td.b{box-shadow:inset 0 0 0 2px var(--bad)}
+.grade td.a{box-shadow:inset 0 0 0 2px var(--warn)}
+.grade td.b::before{content:"";position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:var(--bad)}
+.grade td.tot{font-size:12px;padding:0 8px;white-space:nowrap;color:var(--muted);font-weight:600}
+.k0{background:var(--t0)!important;color:var(--t0i)} .k1{background:var(--t1)!important;color:var(--t1i)}
+.k2{background:var(--t2)!important;color:var(--t2i)} .k3{background:var(--t3)!important;color:var(--t3i)}
+.kF{background:var(--cf)!important;color:var(--cfi)} .kFE{background:var(--cfe)!important;color:var(--cfei)}
+.kAF{background:var(--caf)!important;color:var(--cafi)} .kX{background:var(--cx)!important;color:var(--cxi)}
+.pc.k0,.pc.k1,.pc.k2,.pc.k3,.pc.kF,.pc.kFE,.pc.kAF,.pc.kX{border-color:transparent}
+.pc.on{border-color:var(--ink)!important}
+.pc.apagar{background:var(--card);color:var(--muted);border:2px dashed var(--line)}
+
+@media(max-width:560px){
+  header.top{position:static}
+  .paleta{top:0;gap:4px}
+  .paleta .lbl{display:none}
+  .pc{min-width:38px;padding:6px 8px}
+  .pc small{display:none}
+  .deps{gap:6px}
+  .dep{min-width:0;flex:1;padding:6px 10px}
+  .dep b{font-size:13px}
+  .wrap{max-height:72vh}
+  .grade .nome{min-width:116px;max-width:130px;padding:5px 8px}
+}
+.legenda{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted);margin:10px 0 4px}
+.legenda span b{display:inline-block;min-width:26px;text-align:center;border-radius:3px;padding:1px 4px;margin-right:4px}
+
+.probs{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+@media(max-width:820px){ .probs{grid-template-columns:1fr} }
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.box h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.12em}
+.box.bad h4{color:var(--bad)} .box.warn h4{color:var(--warn)} .box.ok h4{color:var(--ok)}
+.box ul{margin:0;padding-left:18px;font-size:13px;max-height:260px;overflow:auto}
+.box li{margin:3px 0}
+.box li b{font-weight:600}
+
+/* Listas (equipe, turnos, acessos) */
+.sec-t{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.14em;margin:22px 2px 8px;display:flex;gap:10px;align-items:baseline}
+.sec-t .grow{flex:1}
+.tbl{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.li{display:flex;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:14px;cursor:pointer}
+.li:first-child{border-top:0}
+.li:hover{background:var(--hover)}
+.li.ro{cursor:default}
+.li .t{flex:1;min-width:0}
+.li .t small{display:block;color:var(--muted);font-size:12px}
+.li.off{opacity:.5}
+.tagx{font-size:11px;font-weight:700;padding:1px 6px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.tagx.bad{border-color:var(--bad);color:var(--bad)}
+.empty{text-align:center;color:var(--muted);padding:40px 16px}
+.empty .ttl{font:400 22px var(--serif);color:var(--ink);margin-bottom:6px}
+.regras{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:6px 18px}
+.regra{border-top:1px solid var(--line);padding:12px 0;font-size:14px}
+.regra:first-child{border-top:0}
+.regra b{display:block;font-size:15px}
+.regra .tp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-left:6px}
+.regra .tp.b{color:var(--bad)} .regra .tp.a{color:var(--warn)}
+.regra small{color:var(--muted)}
+
+/* Modal */
+.ov{position:fixed;inset:0;background:rgba(17,17,20,.55);z-index:30;display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.md{background:var(--card);border-radius:var(--r);width:100%;max-width:560px;padding:22px 22px 18px;position:relative}
+.md h3{margin:0 0 2px;font:400 24px/1.2 var(--serif)}
+.md .x{position:absolute;right:12px;top:10px;background:none;font-size:20px;color:var(--muted);padding:6px 10px}
+.md .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.md .acts .grow{flex:1}
+.fld{display:flex;flex-direction:column;gap:4px;margin-top:12px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.fld input,.fld select,.fld textarea{border:1px solid var(--line);border-radius:var(--r);padding:9px 10px;font-size:15px;color:var(--ink);text-transform:none;letter-spacing:0;font-weight:400;background:var(--field)}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin-top:12px;color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 12px}
+.msgs{margin-top:12px;font-size:13px}
+.msgs div{padding:6px 10px;border-radius:var(--r);margin-top:4px}
+.msgs .e{background:var(--bad-bg);color:var(--bad)} .msgs .w{background:var(--warn-bg);color:var(--warn)} .msgs .i{background:var(--card-2);color:var(--muted)}
+
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--toast);color:#fff;padding:11px 18px;border-radius:var(--r);font-size:14px;z-index:40;max-width:90vw}
+#toast.err{background:var(--bad)}
+
+/* Exportação (imagem e impressão) */
+#exportar{position:fixed;left:-10000px;top:0;background:#fff;color:#111;padding:24px;font:13px/1.35 var(--sans)}
+#exportar h2{margin:0;font:400 24px var(--serif)}
+#exportar .sub{color:#666;margin:2px 0 12px}
+#exportar table{border-collapse:collapse}
+#exportar th,#exportar td{border:1px solid #ccc;text-align:center;padding:4px 5px;min-width:26px}
+#exportar td.n{text-align:left;font-weight:600;white-space:nowrap;padding:4px 8px}
+#exportar th.fds,#exportar td.fds{background:#f1ece6}
+#exportar .marca{color:#B3261E;font-weight:700;letter-spacing:.1em}
+#exportar .ass{display:flex;gap:40px;margin-top:28px}
+#exportar .ass div{border-top:1px solid #333;padding-top:4px;min-width:240px;font-size:12px}
+@media print{
+  body{background:#fff}
+  #app,#toast,.ov{display:none!important}
+  #exportar{position:static;left:0;padding:0}
+  @page{size:A4 landscape;margin:10mm}
+}
+</style>
+</head>
+<body>
+
+<section id="login">
+  <svg class="logo" viewBox="0 0 1152 919.3" aria-label="JFL"><polygon points="899.5 688.1 899.5 12.4 783.1 12.4 783.1 722.8 1141.8 722.8 1141.8 688.1 899.5 688.1"/><polygon points="367.5 722.8 484.7 722.8 484.7 241 607.4 241 607.4 206.3 484.7 206.3 484.7 47.2 726.4 47.2 726.4 12.4 367.5 12.4 367.5 722.8"/><path d="M209.1,12.4H20.7v34.7h121.5v553.2c0,228.4-30.4,261.4-132,284l3.5,22.6c139-24.3,245.8-85.1,245.8-308.3V12.4h-50.4Z"/></svg>
+  <h2>Escalas <i>de trabalho</i></h2>
+  <p>Digite seu PIN</p>
+  <div class="pins" id="pins"><span></span><span></span><span></span><span></span></div>
+  <div id="loginMsg"></div>
+  <div class="pad" id="pad"></div>
+  <div class="assinatura">Powered by Gustavo Sartorelli®</div>
+</section>
+
+<section id="app" class="hidden">
+  <header class="top" id="hdr">
+    <svg class="logo" viewBox="0 0 1152 919.3" aria-label="JFL"><polygon points="899.5 688.1 899.5 12.4 783.1 12.4 783.1 722.8 1141.8 722.8 1141.8 688.1 899.5 688.1"/><polygon points="367.5 722.8 484.7 722.8 484.7 241 607.4 241 607.4 206.3 484.7 206.3 484.7 47.2 726.4 47.2 726.4 12.4 367.5 12.4 367.5 722.8"/><path d="M209.1,12.4H20.7v34.7h121.5v553.2c0,228.4-30.4,261.4-132,284l3.5,22.6c139-24.3,245.8-85.1,245.8-308.3V12.4h-50.4Z"/></svg>
+    <span class="divider"></span>
+    <img class="logo-predio hidden" id="logoPredio" alt="">
+    <span class="divider hidden" id="divPredio"></span>
+    <h1><span class="sub" id="hdSub">Escalas</span><br><span id="hdNome"></span></h1>
+    <select id="selPredio" aria-label="Prédio"></select>
+    <select id="selMes" aria-label="Mês"></select>
+    <button class="btn-ghost ico" id="btnTema"></button>
+    <button class="btn-ghost" id="btnSair">Sair</button>
+  </header>
+  <main>
+    <div class="tabs" id="tabs"></div>
+    <div id="conteudo"></div>
+  </main>
+  <footer class="assinatura">Powered by Gustavo Sartorelli® · <span id="versao"></span></footer>
+</section>
+
+<div id="exportar"></div>
+<div id="toast" class="hidden"></div>
+
+<script>
+/* ================= Config ================= */
+const VERSAO = 'v1';
+const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
+const TZ = 'America/Sao_Paulo';
+const H2C_URL = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth: { persistSession: false } });
+
+const DEPTOS = { recepcao: 'Recepção', governanca: 'Governança', manutencao: 'Manutenção' };
+const PAPEIS = { admin: 'Administração (todos os prédios)', aprovador: 'Gerente Geral · aprova as escalas', montador: 'Líder · monta a escala do departamento', visualizacao: 'Só visualização' };
+const STATUS = { rascunho: 'Rascunho', enviada: 'Aguardando aprovação', aprovada: 'Aprovada', devolvida: 'Devolvida', nova: 'Não iniciada' };
+const PREDIO_LOGO = { jml: 'logos/jml.png', avnu: 'logos/avnu.png', jfl125: 'logos/jfl125.png', vo699: 'logos/vo699.svg', vhouse: 'logos/vhouse.png' };
+
+// Códigos que não são turno
+const OUTROS = {
+  F:  { nome: 'Folga', cls: 'kF' },
+  FE: { nome: 'Férias', cls: 'kFE' },
+  AF: { nome: 'Atestado / afastamento', cls: 'kAF' },
+  X:  { nome: 'Não se aplica (antes da admissão / após o desligamento)', cls: 'kX' }
+};
+
+/* ===== Regras da lei (EC 141/2026). Para mudar um limite, mude aqui. =====
+   A semana vai de segunda a domingo; vale a regra em vigor no domingo que fecha a semana
+   (a semana de 14 a 20/12/2026 já segue a regra nova). */
+const LEI = [
+  { desde: '0000-01-01', horas: 44, folgas: 1, nome: 'CLT até 15/12/2026 (44h, 6x1)' },
+  { desde: '2026-12-16', horas: 42, folgas: 2, nome: 'EC 141/2026 (42h, 5x2)' },
+  { desde: '2027-12-16', horas: 40, folgas: 2, nome: 'EC 141/2026, 2ª etapa (40h, 5x2)' }
+];
+const REGRA = {
+  descansoMin: 11 * 60,     // entre jornadas (CLT art. 66)
+  diasSeguidosMax: 6,       // folga no máximo após o 6º dia seguido (OJ 410 do TST)
+  domingoMulherSemanas: 2,  // mulher: domingo de folga a cada 15 dias (CLT art. 386)
+  domingoHomemSemanas: 7,   // homem: ao menos 1 domingo de folga a cada 7 semanas (alerta)
+  jornadaMax: 10 * 60,      // 8h + 2h extras (CLT art. 59)
+  jornadaNormal: 8 * 60
+};
+const regraEm = iso => LEI.filter(r => r.desde <= iso).pop();
+
+/* ================= Utils ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const store = {
+  get(k, d){ try { const v = localStorage.getItem('esc_'+k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v){ try { localStorage.setItem('esc_'+k, JSON.stringify(v)); } catch {} },
+  del(k){ try { localStorage.removeItem('esc_'+k); } catch {} }
+};
+const hojeISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+const dUTC = iso => new Date(iso + 'T00:00:00Z');
+const isoDe = d => d.toISOString().slice(0, 10);
+const addDias = (iso, n) => { const d = dUTC(iso); d.setUTCDate(d.getUTCDate() + n); return isoDe(d); };
+const dow = iso => dUTC(iso).getUTCDay();                 // 0 = domingo
+const segundaDe = iso => addDias(iso, -((dow(iso) + 6) % 7));
+const fimDoMes = mes => { const d = dUTC(mes); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(0); return isoDe(d); };
+const mesAnterior = mes => { const d = dUTC(mes); d.setUTCMonth(d.getUTCMonth() - 1); return isoDe(d); };
+const ddmm = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const nomeMes = mes => MESES[+mes.slice(5, 7) - 1] + ' ' + mes.slice(0, 4);
+const SEM = ['D','S','T','Q','Q','S','S'];
+const SEM_NOME = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+const hm = min => { const s = min < 0 ? '-' : ''; min = Math.abs(Math.round(min)); return s + Math.floor(min / 60) + 'h' + String(min % 60).padStart(2, '0'); };
+const tmin = t => { if (!t) return null; const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+const hhmm = t => t ? String(t).slice(0, 5) : '';
+const quando = iso => iso ? new Date(iso).toLocaleString('pt-BR', { timeZone: TZ, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+
+let toastT;
+function toast(msg, err){ const t = $('#toast'); t.textContent = msg; t.className = err ? 'err' : ''; clearTimeout(toastT); toastT = setTimeout(() => t.className = 'hidden', err ? 5000 : 2500); }
+async function rpc(fn, args){ const { data, error } = await sb.rpc(fn, args); if (error) throw new Error(error.message || 'Erro'); return data; }
+function modal(html){
+  const ov = document.createElement('div'); ov.className = 'ov';
+  ov.innerHTML = `<div class="md" role="dialog"><button class="x" aria-label="Fechar">✕</button>${html}</div>`;
+  ov.onclick = e => { if (e.target === ov || e.target.classList.contains('x')) ov.remove(); };
+  document.body.appendChild(ov);
+  return ov;
+}
+
+/* ================= Sessão ================= */
+let S = { pin: null, user: null };
+let PREDIO = null, MES = null, DEP = null, ABA = store.get('aba', 'escala');
+let D = { turnos: [], funcionarios: [], config: {}, escalas: [] };   // dados do prédio
+let E = null;            // { escala, anterior, historico } do departamento/mês
+let GRADE = {};          // cópia editável da grade
+let V = null;            // última validação
+let PINCEL = store.get('pincel', 'F');
+let pinBuf = '';
+
+const papel = () => S.user && S.user.papel;
+const podeAprovar = () => ['admin', 'aprovador'].includes(papel());
+const podeMontar = dep => podeAprovar() || (papel() === 'montador' && S.user.departamento === dep);
+const podeTurnos = () => podeAprovar();
+const deptosVisiveis = () => papel() === 'montador' ? [S.user.departamento] : Object.keys(DEPTOS);
+
+function buildPad(){
+  const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  $('#pad').innerHTML = keys.map(k => k === '' ? '<span></span>' : `<button data-k="${k}" class="${k==='⌫'?'txt':''}" aria-label="${k==='⌫'?'Apagar':k}">${k}</button>`).join('');
+  $('#pad').onclick = e => { const k = e.target.dataset.k; if (!k) return; if (k === '⌫') pinBuf = pinBuf.slice(0,-1); else if (pinBuf.length < 4) pinBuf += k; drawPins(); if (pinBuf.length === 4) tryLogin(pinBuf); };
+  document.addEventListener('keydown', e => { if ($('#login').classList.contains('hidden')) return; if (/^\d$/.test(e.key) && pinBuf.length < 4) { pinBuf += e.key; drawPins(); if (pinBuf.length === 4) tryLogin(pinBuf); } if (e.key === 'Backspace') { pinBuf = pinBuf.slice(0,-1); drawPins(); } });
+}
+function drawPins(){ [...$('#pins').children].forEach((s,i) => s.classList.toggle('on', i < pinBuf.length)); }
+async function tryLogin(pin){
+  $('#loginMsg').textContent = 'Entrando…';
+  try {
+    const u = await rpc('esc_login', { p_pin: pin });
+    S = { pin, user: u }; store.set('sessao', S); pinBuf = ''; drawPins(); $('#loginMsg').textContent = '';
+    start();
+  } catch (e) {
+    $('#loginMsg').textContent = /PIN/.test(e.message) ? 'PIN incorreto' : 'Sem conexão. Tente de novo.';
+    $('#pins').classList.add('shake'); setTimeout(() => $('#pins').classList.remove('shake'), 400);
+    pinBuf = ''; drawPins();
+  }
+}
+async function logout(){ await salvarAgora(); store.del('sessao'); S = { pin: null, user: null }; $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); }
+$('#btnSair').onclick = logout;
+
+const ICO_LUA = '<svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>';
+const ICO_SOL = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+function aplicarTema(t){
+  document.documentElement.dataset.theme = t;
+  const escuro = t === 'dark';
+  $('#btnTema').innerHTML = escuro ? ICO_SOL : ICO_LUA;
+  $('#btnTema').title = $('#btnTema').ariaLabel = escuro ? 'Fundo claro' : 'Fundo escuro';
+  document.querySelector('meta[name="theme-color"]').content = escuro ? '#5E3324' : '#8E4E38';
+}
+aplicarTema(document.documentElement.dataset.theme);
+$('#btnTema').onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; store.set('tema', t); aplicarTema(t); };
+
+function mostrarLogoPredio(){
+  const src = PREDIO_LOGO[PREDIO], p = (S.user.predios || []).find(p => p.id === PREDIO);
+  $('#logoPredio').classList.toggle('hidden', !src); $('#divPredio').classList.toggle('hidden', !src);
+  if (src) { $('#logoPredio').src = src; $('#logoPredio').alt = p ? p.nome : PREDIO; }
+}
+const nomePredio = () => ((S.user.predios || []).find(p => p.id === PREDIO) || {}).nome || PREDIO;
+
+function start(){
+  const u = S.user;
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  $('#versao').textContent = VERSAO;
+  $('#hdNome').textContent = u.titulo ? `${u.nome} · ${u.titulo}` : u.nome + (u.departamento ? ' · ' + DEPTOS[u.departamento] : '');
+  const predios = u.predios || [];
+  PREDIO = predios.some(p => p.id === store.get('predio')) ? store.get('predio') : (u.predio || (predios[0] && predios[0].id));
+  $('#selPredio').innerHTML = predios.map(p => `<option value="${p.id}">${esc(p.nome)}</option>`).join('');
+  $('#selPredio').value = PREDIO;
+  $('#selPredio').classList.toggle('hidden', predios.length < 2);
+  $('#hdSub').textContent = predios.length === 1 ? `Escalas · ${predios[0].nome}` : 'Escalas';
+  mostrarLogoPredio();
+  $('#selPredio').onchange = async () => { await salvarAgora(); PREDIO = $('#selPredio').value; store.set('predio', PREDIO); mostrarLogoPredio(); carregar(); };
+  // Meses: do atual a 4 à frente (e 2 para trás); padrão: o próximo mês a partir do dia 15
+  const hoje = hojeISO(), atual = hoje.slice(0, 8) + '01';
+  const meses = []; let m = mesAnterior(mesAnterior(atual));
+  for (let i = 0; i < 7; i++) { meses.push(m); m = fimDoMes(m); m = addDias(m, 1); }
+  const proximo = addDias(fimDoMes(atual), 1);
+  MES = meses.includes(store.get('mes')) ? store.get('mes') : (+hoje.slice(8) >= 15 ? proximo : atual);
+  $('#selMes').innerHTML = meses.map(x => `<option value="${x}">${nomeMes(x)}</option>`).join('');
+  $('#selMes').value = MES;
+  $('#selMes').onchange = async () => { await salvarAgora(); MES = $('#selMes').value; store.set('mes', MES); carregar(); };
+  const deps = deptosVisiveis();
+  DEP = deps.includes(store.get('dep')) ? store.get('dep') : deps[0];
+  new ResizeObserver(() => document.documentElement.style.setProperty('--hdr', $('#hdr').offsetHeight + 'px')).observe($('#hdr'));
+  rpc('esc_login', { p_pin: S.pin }).then(u => { S.user = u; store.set('sessao', S); }).catch(e => { if (/PIN/.test(e.message)) logout(); });
+  carregar();
+}
+
+/* ================= Carregar ================= */
+async function carregar(){
+  $('#conteudo').innerHTML = '<div class="empty">Carregando…</div>';
+  try {
+    [D, E] = await Promise.all([
+      rpc('esc_dados', { p_pin: S.pin, p_predio: PREDIO, p_mes: MES }),
+      rpc('esc_escala', { p_pin: S.pin, p_predio: PREDIO, p_dep: DEP, p_mes: MES })
+    ]);
+  } catch (e) { $('#conteudo').innerHTML = `<div class="empty"><div class="ttl">Não foi possível carregar</div>${esc(e.message)}</div>`; return; }
+  GRADE = JSON.parse(JSON.stringify((E.escala && E.escala.grade) || {}));
+  render();
+}
+async function trocarDep(dep){ await salvarAgora(); DEP = dep; store.set('dep', dep); return carregarEscala(); }
+async function carregarEscala(){
+  try {
+    [E, D] = await Promise.all([rpc('esc_escala', { p_pin: S.pin, p_predio: PREDIO, p_dep: DEP, p_mes: MES }), rpc('esc_dados', { p_pin: S.pin, p_predio: PREDIO, p_mes: MES })]);
+  } catch (e) { toast(e.message, true); return; }
+  GRADE = JSON.parse(JSON.stringify((E.escala && E.escala.grade) || {}));
+  render();
+}
+
+function render(){
+  const abas = [['escala', 'Escala'], ['equipe', 'Equipe'], ['turnos', 'Turnos'], ['regras', 'Regras']];
+  if (podeAprovar()) abas.push(['acessos', 'Acessos']);
+  if (!abas.some(a => a[0] === ABA)) ABA = 'escala';
+  $('#tabs').innerHTML = abas.map(([k, n]) => `<button data-a="${k}" class="${k === ABA ? 'on' : ''}">${n}</button>`).join('');
+  $('#tabs').onclick = async e => { const a = e.target.dataset.a; if (!a) return; await salvarAgora(); ABA = a; store.set('aba', a); render(); };
+  ({ escala: renderEscala, equipe: renderEquipe, turnos: renderTurnos, regras: renderRegras, acessos: renderAcessos })[ABA]();
+}
+
+/* ================= Turnos e códigos ================= */
+const turnosDoDep = (dep, lista = D.turnos) => lista.filter(t => !t.departamentos || t.departamentos.includes(dep));
+const corTurno = (sigla, lista = D.turnos) => { const i = lista.findIndex(t => t.sigla === sigla); return i < 0 ? '' : 'k' + (i % 4); };
+const clsCod = (c, lista) => !c ? '' : OUTROS[c] ? OUTROS[c].cls : corTurno(c, lista);
+// Horário de um turno num dia (minutos desde 0h do dia; fim pode passar de 24h)
+function jornada(t, iso){
+  const fds = [0, 6].includes(dow(iso)) && t.inicio_fds && t.fim_fds;
+  const ini = tmin(fds ? t.inicio_fds : t.inicio); let fim = tmin(fds ? t.fim_fds : t.fim);
+  if (fim <= ini) fim += 1440;
+  return { ini, fim, trab: fim - ini - (t.intervalo_min || 0), intervalo: t.intervalo_min || 0, fds: !!fds };
+}
+function textoTurno(t){
+  const s = `${hhmm(t.inicio)}–${hhmm(t.fim)}`, f = t.inicio_fds && t.fim_fds ? ` (sáb/dom ${hhmm(t.inicio_fds)}–${hhmm(t.fim_fds)})` : '';
+  return s + f;
+}
+// Erros de um turno pela CLT (intervalo e jornada diária)
+function checarTurno(t){
+  const out = [];
+  const casos = [['seg–sex', jornada(t, '2026-12-07')]];
+  if (t.inicio_fds && t.fim_fds) casos.push(['sáb/dom', jornada(t, '2026-12-05')]);
+  for (const [q, j] of casos) {
+    const span = j.fim - j.ini;
+    if (span > 16 * 60) out.push({ n: 'e', t: `${q}: horário inválido (mais de 16h entre entrada e saída)` });
+    if (j.trab > 6 * 60 && j.intervalo < 60) out.push({ n: 'e', t: `${q}: jornada de ${hm(j.trab)} exige intervalo de no mínimo 1h (CLT art. 71)` });
+    else if (j.trab > 4 * 60 && j.intervalo < 15) out.push({ n: 'e', t: `${q}: jornada de ${hm(j.trab)} exige intervalo de no mínimo 15 min (CLT art. 71 §1º)` });
+    if (j.intervalo > 120) out.push({ n: 'e', t: `${q}: intervalo acima de 2h só com acordo escrito ou convenção (CLT art. 71)` });
+    if (j.trab > REGRA.jornadaMax) out.push({ n: 'e', t: `${q}: ${hm(j.trab)} trabalhadas; o máximo é 10h por dia (8h + 2h extras, CLT art. 59)` });
+    else if (j.trab > REGRA.jornadaNormal) out.push({ n: 'w', t: `${q}: ${hm(j.trab)} trabalhadas, acima de 8h por dia; só vale com acordo ou convenção coletiva (até 16/12/2027, a convenção pode ampliar a jornada diária para fechar as 42h)` });
+  }
+  return out;
+}
+
+/* ================= Validação (as regras) ================= */
+function funcionariosDaEscala(){
+  const ids = new Set(Object.keys(GRADE).filter(id => Object.values(GRADE[id] || {}).some(Boolean)));
+  return D.funcionarios.filter(f => f.departamento === DEP && (f.ativo || ids.has(f.id)))
+    .sort((a, b) => (b.ativo - a.ativo) || (a.ordem - b.ordem) || a.nome.localeCompare(b.nome, 'pt-BR'));
+}
+
+function validar(){
+  const ini = MES, fim = fimDoMes(MES), antIni = mesAnterior(MES);
+  const ant = E.anterior, antTurnos = (ant && ant.turnos && ant.turnos.length) ? ant.turnos : D.turnos;
+  const turnosOk = turnosDoDep(DEP);
+  const cel = {}, lista = [];
+  const marca = (fid, iso, n, msg) => {
+    if (iso < ini || iso > fim) return;
+    const k = fid + '|' + iso, c = cel[k] || (cel[k] = { n: 'a', msgs: [] });
+    if (n === 'b') c.n = 'b'; if (!c.msgs.includes(msg)) c.msgs.push(msg);
+  };
+  const add = (n, f, texto) => lista.push({ n, fid: f && f.id, nome: f && f.nome, texto });
+  // Situação de um dia: trab (com horário absoluto), folga, x, vazio (no mês), ? (desconhecido, fora do mês sem dados)
+  const info = (f, iso) => {
+    let c, lt;
+    if (iso >= ini && iso <= fim) { c = (GRADE[f.id] || {})[iso] || ''; lt = D.turnos; }
+    else if (iso >= antIni && iso < ini && ant) { c = ((ant.grade || {})[f.id] || {})[iso] || ''; lt = antTurnos; }
+    else return { tipo: '?' };
+    if (!c) return { tipo: iso >= ini ? 'vazio' : '?' };
+    if (c === 'X') return { tipo: 'x', c };
+    if (OUTROS[c]) return { tipo: 'folga', c };
+    const t = lt.find(t => t.sigla === c) || D.turnos.find(t => t.sigla === c);
+    if (!t) return { tipo: 'invalido', c };
+    const j = jornada(t, iso), base = Math.round((dUTC(iso) - dUTC(antIni)) / 864e5) * 1440;
+    return { tipo: 'trab', c, t, ini: base + j.ini, fim: base + j.fim, trab: j.trab };
+  };
+
+  const funcs = funcionariosDaEscala();
+  const dias = []; for (let d = ini; d <= fim; d = addDias(d, 1)) dias.push(d);
+  const totais = {};
+
+  for (const f of funcs) {
+    const tot = { min: 0, folgas: 0, domFolga: 0 }; totais[f.id] = tot;
+    if (!f.sexo) add('b', f, 'Informe se é mulher ou homem (aba Equipe): a regra do domingo depende disso');
+    // Dias vazios e códigos inválidos
+    let vazios = 0;
+    for (const d of dias) {
+      const x = info(f, d);
+      if (x.tipo === 'vazio') vazios++;
+      if (x.tipo === 'invalido') { marca(f.id, d, 'b', `Turno "${x.c}" não existe mais`); add('b', f, `${ddmm(d)}: turno "${x.c}" não existe mais`); }
+      if (x.tipo === 'trab' && !turnosOk.some(t => t.sigla === x.c)) { marca(f.id, d, 'b', `Turno ${x.c} não é deste departamento`); add('b', f, `${ddmm(d)}: turno ${x.c} não é usado em ${DEPTOS[DEP]}`); }
+      if (x.tipo === 'trab') tot.min += x.trab;
+      if (x.tipo === 'folga') { tot.folgas++; if (dow(d) === 0) tot.domFolga++; }
+    }
+    if (vazios) add('b', f, `${vazios} dia${vazios > 1 ? 's' : ''} sem marcação`);
+
+    // Semanas (segunda a domingo) que tocam o mês: horas e folgas
+    for (let s = segundaDe(ini); s <= fim; s = addDias(s, 7)) {
+      const ds = [0,1,2,3,4,5,6].map(i => addDias(s, i)), r = regraEm(ds[6]);
+      const xs = ds.map(d => info(f, d));
+      const min = xs.reduce((a, x) => a + (x.tipo === 'trab' ? x.trab : 0), 0);
+      const folgas = xs.filter(x => x.tipo === 'folga' || x.tipo === 'x').length;
+      const desconhecidos = xs.filter(x => x.tipo === '?' || x.tipo === 'vazio').length;
+      const per = `Semana ${ddmm(ds[0])} a ${ddmm(ds[6])}`;
+      if (min > r.horas * 60) {
+        const msg = `${per}: ${hm(min)} de trabalho; o limite é ${r.horas}h por semana`;
+        add('b', f, msg); ds.forEach((d, i) => xs[i].tipo === 'trab' && marca(f.id, d, 'b', msg));
+      }
+      const precisa = Math.max(0, r.folgas - desconhecidos);
+      if (folgas < precisa) {
+        const msg = `${per}: ${folgas} folga${folgas === 1 ? '' : 's'}; o mínimo é ${r.folgas} por semana (${r.nome})`;
+        add('b', f, msg); ds.forEach((d, i) => xs[i].tipo === 'trab' && marca(f.id, d, 'b', msg));
+      }
+    }
+
+    // Dias seguidos de trabalho e descanso entre jornadas (olhando também o fim do mês anterior)
+    let seguidos = 0, antes = null;
+    for (let d = antIni; d <= fim; d = addDias(d, 1)) {
+      const x = info(f, d);
+      if (x.tipo === 'trab') {
+        seguidos++;
+        if (seguidos > REGRA.diasSeguidosMax && d >= ini) {
+          const msg = `${ddmm(d)}: ${seguidos}º dia seguido de trabalho; o máximo é ${REGRA.diasSeguidosMax} dias seguidos sem folga`;
+          marca(f.id, d, 'b', msg); add('b', f, msg);
+        }
+        if (antes && antes.tipo === 'trab' && d >= ini) {
+          const desc = x.ini - antes.fim;
+          if (desc < REGRA.descansoMin) {
+            const msg = `${ddmm(d)}: só ${hm(desc)} de descanso desde o turno anterior (mínimo 11h, CLT art. 66)`;
+            marca(f.id, d, 'b', msg); add('b', f, msg);
+          }
+        }
+      } else seguidos = 0;
+      antes = x;
+    }
+
+    // Domingos
+    for (const d of dias.filter(d => dow(d) === 0)) {
+      const x = info(f, d);
+      if (x.tipo !== 'trab') continue;
+      let n = 1, p = addDias(d, -7);
+      while (n < 60) { const y = info(f, p); if (y.tipo !== 'trab') break; n++; p = addDias(p, -7); }
+      if (f.sexo === 'F' && n >= REGRA.domingoMulherSemanas) {
+        const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; mulher precisa de folga no domingo a cada 15 dias (CLT art. 386)`;
+        marca(f.id, d, 'b', msg); add('b', f, msg);
+      } else if (f.sexo === 'M' && n >= REGRA.domingoHomemSemanas) {
+        const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; dê ao menos 1 domingo de folga a cada 7 semanas`;
+        marca(f.id, d, 'a', msg); add('a', f, msg);
+      }
+    }
+  }
+
+  // Turnos usados: intervalo e jornada diária
+  const usados = new Set(); funcs.forEach(f => dias.forEach(d => { const c = (GRADE[f.id] || {})[d]; if (c && !OUTROS[c]) usados.add(c); }));
+  for (const t of D.turnos.filter(t => usados.has(t.sigla)))
+    for (const m of checarTurno(t)) add(m.n === 'e' ? 'b' : 'a', null, `Turno ${t.sigla} (${t.nome}): ${m.t}`);
+
+  // Departamento fechado no domingo: domingo só pode ser folga (F, FE, AF ou X)
+  if (fechaDomingo(DEP)) for (const f of funcs) for (const d of dias.filter(d => dow(d) === 0)) {
+    const c = (GRADE[f.id] || {})[d];
+    if (c && !OUTROS[c]) { const msg = `${ddmm(d)}: ${DEPTOS[DEP]} não funciona aos domingos`; marca(f.id, d, 'b', msg); add('b', f, msg); }
+  }
+
+  // Cobertura mínima por turno e dia
+  const cob = cobertura(DEP), diaCob = {};
+  for (const [sigla, minimo] of Object.entries(cob)) {
+    if (!(+minimo > 0) || !turnosOk.some(t => t.sigla === sigla)) continue;
+    const faltas = [];
+    for (const d of dias) {
+      const n = funcs.filter(f => (GRADE[f.id] || {})[d] === sigla).length;
+      if (n < minimo) { faltas.push(`${ddmm(d)} (${n})`); (diaCob[d] = diaCob[d] || []).push(`${sigla}: ${n} de ${minimo}`); }
+    }
+    if (faltas.length) add('a', null, `Turno ${sigla} abaixo do mínimo de ${minimo} pessoa${minimo > 1 ? 's' : ''} em ${faltas.length} dia${faltas.length > 1 ? 's' : ''}: ${faltas.slice(0, 8).join(', ')}${faltas.length > 8 ? '…' : ''}`);
+  }
+
+  return { cel, lista, totais, diaCob, funcs, dias,
+    bloqueios: lista.filter(x => x.n === 'b').length, alertas: lista.filter(x => x.n === 'a').length };
+}
+
+const cobertura = dep => (((D.config || {})[dep] || {}).cobertura) || {};
+const fechaDomingo = dep => !!((D.config || {})[dep] || {}).fecha_domingo;
+// Departamento fechado no domingo: domingos vazios já entram como folga (salvos na próxima mudança)
+function preencherDomingos(){
+  if (!fechaDomingo(DEP) || !editavel()) return;
+  for (const f of funcionariosDaEscala().filter(f => f.ativo)) {
+    const g = GRADE[f.id] = GRADE[f.id] || {};
+    for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) if (dow(d) === 0 && !g[d]) g[d] = 'F';
+  }
+}
+
+/* ================= Aba Escala ================= */
+const statusDe = dep => { const e = (D.escalas || []).find(e => e.departamento === dep); return e ? e.status : 'nova'; };
+function editavel(){
+  const st = E.escala ? E.escala.status : 'nova';
+  return podeMontar(DEP) && ['nova', 'rascunho', 'devolvida'].includes(st);
+}
+
+function renderEscala(){
+  const deps = deptosVisiveis();
+  const st = E.escala ? E.escala.status : 'nova', ed = editavel();
+  preencherDomingos();
+  V = validar();
+  let h = '';
+  // Departamentos com a situação do mês
+  h += `<div class="deps">${deps.map(d => { const s = statusDe(d); return `<button class="dep ${d === DEP ? 'on' : ''}" data-dep="${d}"><b>${DEPTOS[d]}</b><span class="pill ${s}">${STATUS[s]}</span></button>`; }).join('')}</div>`;
+
+  // Situação e ações
+  const es = E.escala;
+  let info = '';
+  if (st === 'nova') info = podeMontar(DEP) ? 'Escala ainda não iniciada. Escolha um código na paleta e toque nos dias.' : 'O líder ainda não começou esta escala.';
+  else if (st === 'rascunho') info = `Rascunho${es.salvo_por ? `, salvo por ${esc(es.salvo_por)} em ${quando(es.salvo_em)}` : ''}.`;
+  else if (st === 'enviada') info = `Enviada por ${esc(es.enviada_por)} em ${quando(es.enviada_em)}. ${podeAprovar() ? 'Confira e aprove ou devolva.' : 'Aguardando o Gerente Geral.'}`;
+  else if (st === 'aprovada') info = `Aprovada por ${esc(es.aprovada_por)} em ${quando(es.aprovada_em)}. Para mudar, reabra (volta para aprovação).`;
+  else if (st === 'devolvida') info = `Devolvida pelo Gerente Geral: <b>${esc(es.motivo || '')}</b>`;
+  h += `<div class="aviso ${st === 'aprovada' ? 'ok' : st === 'devolvida' ? 'bad' : st === 'enviada' ? 'warn' : ''}">${info}</div>`;
+
+  const acts = [];
+  if (ed && V.funcs.length) acts.push(`<button class="btn" id="bEnviar" ${V.bloqueios ? 'disabled title="Corrija os bloqueios primeiro"' : ''}>Enviar para aprovação</button>`);
+  if (st === 'enviada' && podeAprovar()) acts.push(`<button class="btn ok" id="bAprovar">Aprovar</button><button class="btn danger" id="bDevolver">Devolver</button>`);
+  if (['enviada', 'aprovada'].includes(st) && podeMontar(DEP)) acts.push(`<button class="btn sec" id="bReabrir">Reabrir para editar</button>`);
+  h += `<div class="toolbar"><span class="hint grow" id="salvoInfo"></span>${acts.join('')}
+    <button class="btn sec" id="bImagem">Imagem (WhatsApp)</button><button class="btn sec" id="bImprimir">Imprimir / PDF</button></div>`;
+
+  // Paleta
+  const tds = turnosDoDep(DEP);
+  if (ed && V.funcs.length) {
+    const cods = tds.map(t => [t.sigla, corTurno(t.sigla), t.nome]).concat(Object.entries(OUTROS).map(([k, o]) => [k, o.cls, o.nome.split(' (')[0]]));
+    if (!cods.some(c => c[0] === PINCEL) && PINCEL !== '') PINCEL = 'F';
+    h += `<div class="paleta" id="paleta"><span class="lbl">Pincel</span>${cods.map(([k, cls, n]) => `<button class="pc ${cls} ${PINCEL === k ? 'on' : ''}" data-k="${k}" title="${esc(n)}">${k}<small>${esc(n)}</small></button>`).join('')}
+      <button class="pc apagar ${PINCEL === '' ? 'on' : ''}" data-k="" title="Apagar">Apagar</button>
+      <span class="grow"></span>
+      <button class="btn link" id="bRepetir" title="Copia os dias 1 a 7 para o resto do mês (mesmo dia da semana)">Repetir 1ª semana</button>
+      <button class="btn link" id="bLimpar">Limpar</button></div>`;
+  }
+
+  if (!V.funcs.length) {
+    h += `<div class="empty"><div class="ttl">Ninguém na equipe de ${DEPTOS[DEP]}</div>Cadastre as pessoas na aba Equipe.</div>`;
+    $('#conteudo').innerHTML = h; ligarEscala(); return;
+  }
+
+  // Grade
+  h += `<div class="wrap" id="wrap"><table class="grade" id="grade"><thead><tr><th class="nome">Funcionário</th>`;
+  for (const d of V.dias) {
+    const w = dow(d), cov = V.diaCob[d];
+    h += `<th class="${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'dom' : ''} ${w === 1 ? 'seg' : ''} ${cov ? 'cov' : ''}" ${cov ? `title="Abaixo do mínimo: ${esc(cov.join(', '))}"` : ''}>${SEM[w]}<b>${+d.slice(8)}</b></th>`;
+  }
+  h += `<th>Horas</th><th>Folgas</th></tr></thead><tbody>`;
+  for (const f of V.funcs) {
+    const t = V.totais[f.id];
+    h += `<tr><th class="nome">${esc(f.nome)}${f.ativo ? '' : ' <span class="tagx">inativo</span>'}<small><span class="sx ${f.sexo ? '' : 'falta'}">${f.sexo === 'F' ? 'Mulher' : f.sexo === 'M' ? 'Homem' : 'Sexo?'}</span> · ${esc(f.cargo || '')}</small></th>`;
+    for (const d of V.dias) {
+      const c = (GRADE[f.id] || {})[d] || '', w = dow(d), m = V.cel[f.id + '|' + d];
+      h += `<td class="c ${ed ? '' : 'ro'} ${clsCod(c)} ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${c ? '' : 'vazio'} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (m ? '\n' + m.msgs.join('\n') : ''))}">${c}</td>`;
+    }
+    h += `<td class="tot num">${hm(t.min)}</td><td class="tot num">${t.folgas}${t.domFolga ? ` <small title="domingos de folga">(${t.domFolga} dom)</small>` : ''}</td></tr>`;
+  }
+  h += `</tbody></table></div>`;
+
+  // Legenda
+  h += `<div class="legenda">${tds.map(t => { const j = jornada(t, '2026-12-07'); return `<span><b class="${corTurno(t.sigla)}">${t.sigla}</b>${esc(t.nome)} ${textoTurno(t)} · ${hm(j.trab)} + ${t.intervalo_min} min de intervalo</span>`; }).join('')}
+    ${Object.entries(OUTROS).map(([k, o]) => `<span><b class="${o.cls}">${k}</b>${esc(o.nome)}</span>`).join('')}</div>`;
+  const r = regraEm(fimDoMes(MES)), r0 = regraEm(MES);
+  h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de 7 a 13/12; depois ${esc(r.nome)}`}. Semanas de segunda a domingo (linha mais grossa = segunda-feira).</p>`;
+
+  // Problemas
+  const bl = V.lista.filter(x => x.n === 'b'), al = V.lista.filter(x => x.n === 'a');
+  const li = x => `<li>${x.nome ? `<b>${esc(x.nome)}</b>: ` : ''}${esc(x.texto)}</li>`;
+  h += `<div class="probs">
+    ${bl.length ? `<div class="box bad"><h4>Bloqueios (${bl.length}) · impedem o envio</h4><ul>${bl.map(li).join('')}</ul></div>`
+                : `<div class="box ok"><h4>Sem bloqueios</h4><div class="hint">Todas as regras obrigatórias estão cumpridas.</div></div>`}
+    ${al.length ? `<div class="box warn"><h4>Alertas (${al.length}) · conferir</h4><ul>${al.map(li).join('')}</ul></div>`
+                : `<div class="box"><h4>Alertas</h4><div class="hint">Nenhum.</div></div>`}
+  </div>`;
+  if (E.historico && E.historico.length) {
+    const nomes = { enviar: 'enviou', aprovar: 'aprovou', devolver: 'devolveu', reabrir: 'reabriu' };
+    h += `<div class="sec-t">Histórico</div><div class="tbl">${E.historico.map(x => `<div class="li ro"><div class="t">${esc(x.por)} ${nomes[x.acao] || x.acao}${x.motivo ? `: ${esc(x.motivo)}` : ''}</div><small class="hint">${quando(x.em)}</small></div>`).join('')}</div>`;
+  }
+  $('#conteudo').innerHTML = h;
+  ligarEscala();
+  mostrarSalvo();
+}
+
+function ligarEscala(){
+  document.querySelectorAll('.dep').forEach(b => b.onclick = () => b.dataset.dep !== DEP && trocarDep(b.dataset.dep));
+  const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
+  on('bEnviar', enviar); on('bAprovar', () => acao('aprovar')); on('bDevolver', devolver); on('bReabrir', reabrir);
+  on('bImprimir', imprimir); on('bImagem', imagem); on('bRepetir', repetirSemana); on('bLimpar', limpar);
+  const pal = $('#paleta');
+  if (pal) pal.onclick = e => { const b = e.target.closest('.pc'); if (!b) return; PINCEL = b.dataset.k; store.set('pincel', PINCEL); pal.querySelectorAll('.pc').forEach(x => x.classList.toggle('on', x === b)); };
+  const g = $('#grade');
+  if (!g || !editavel()) return;
+  let pintando = false;
+  const pinta = td => {
+    const f = td.dataset.f, d = td.dataset.d; if (!f) return;
+    GRADE[f] = GRADE[f] || {};
+    if ((GRADE[f][d] || '') === PINCEL) return;
+    if (PINCEL) GRADE[f][d] = PINCEL; else delete GRADE[f][d];
+    td.textContent = PINCEL; td.className = `c ${clsCod(PINCEL)} ${[0, 6].includes(dow(d)) ? 'fds' : ''} ${dow(d) === 1 ? 'seg' : ''} ${PINCEL ? '' : 'vazio'}`;
+    mudou();
+  };
+  g.addEventListener('pointerdown', e => { const td = e.target.closest('td.c'); if (!td) return; pintando = e.pointerType === 'mouse'; pinta(td); });
+  g.addEventListener('pointerover', e => { if (!pintando) return; const td = e.target.closest('td.c'); if (td) pinta(td); });
+  window.onpointerup = () => { if (pintando) { pintando = false; } if (pendenteRender) { pendenteRender = false; rerender(); } };
+}
+
+// Depois de pintar: salva (com atraso) e revalida
+let salvarT = null, sujo = false, salvando = null, pendenteRender = false, ultimoSalvo = null;
+function mudou(){
+  sujo = true; mostrarSalvo();
+  clearTimeout(salvarT); salvarT = setTimeout(salvarAgora, 1200);
+  pendenteRender = true; clearTimeout(mudou.t); mudou.t = setTimeout(() => { if (pendenteRender) { pendenteRender = false; rerender(); } }, 350);
+}
+function rerender(){
+  const w = $('#wrap'), sx = w ? w.scrollLeft : 0, sy = w ? w.scrollTop : 0, wy = window.scrollY;
+  renderEscala();
+  const w2 = $('#wrap'); if (w2) { w2.scrollLeft = sx; w2.scrollTop = sy; } window.scrollTo(0, wy);
+}
+function mostrarSalvo(){
+  const el = $('#salvoInfo'); if (!el) return;
+  el.textContent = sujo ? 'Salvando…' : ultimoSalvo ? `Salvo às ${ultimoSalvo}` : '';
+}
+async function salvarAgora(){
+  clearTimeout(salvarT);
+  if (salvando) await salvando;
+  if (!sujo) return;
+  sujo = false;
+  const grade = {}; for (const [f, dias] of Object.entries(GRADE)) { const x = Object.fromEntries(Object.entries(dias || {}).filter(([, c]) => c)); if (Object.keys(x).length) grade[f] = x; }
+  salvando = rpc('esc_salvar', { p_pin: S.pin, p_predio: PREDIO, p_dep: DEP, p_mes: MES, p_grade: grade, p_turnos: D.turnos })
+    .then(r => {
+      ultimoSalvo = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      if (!E.escala) { E.escala = { id: r.id, status: r.status }; D.escalas = (D.escalas || []).concat([{ id: r.id, departamento: DEP, status: r.status }]); if (ABA === 'escala') rerender(); }
+      E.escala.grade = grade;
+      mostrarSalvo();
+    })
+    .catch(e => { sujo = true; toast('Não salvou: ' + e.message, true); mostrarSalvo(); })
+    .finally(() => { salvando = null; });
+  await salvando;
+}
+window.addEventListener('beforeunload', e => { if (sujo) { salvarAgora(); e.preventDefault(); e.returnValue = ''; } });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') salvarAgora(); });
+
+function repetirSemana(){
+  if (!confirm('Copiar os dias 1 a 7 para o resto do mês, para todos? Os dias 8 em diante serão substituídos.')) return;
+  const dias = V.dias;
+  for (const f of V.funcs) {
+    const g = GRADE[f.id] = GRADE[f.id] || {};
+    for (const d of dias.slice(7)) { const src = dias[(+d.slice(8) - 1) % 7]; if (g[src]) g[d] = g[src]; else delete g[d]; }
+  }
+  mudou(); pendenteRender = false; rerender();
+}
+function limpar(){
+  if (!confirm('Apagar toda a marcação deste mês?')) return;
+  GRADE = {}; mudou(); pendenteRender = false; rerender();
+}
+
+async function enviar(){
+  sujo = true; // garante que os domingos preenchidos sozinhos também sejam salvos
+  await salvarAgora();
+  V = validar();
+  if (V.bloqueios) { toast('Corrija os bloqueios antes de enviar', true); return; }
+  const msg = V.alertas ? `Há ${V.alertas} alerta(s). Enviar assim mesmo para o Gerente Geral?` : 'Enviar a escala para o Gerente Geral aprovar?';
+  if (!confirm(msg)) return;
+  acao('enviar', null, { bloqueios: V.bloqueios, alertas: V.alertas });
+}
+function devolver(){
+  const ov = modal(`<h3>Devolver a escala</h3><div class="hint">O líder vê o motivo e corrige.</div>
+    <label class="fld">Motivo<textarea id="mot" rows="3" placeholder="Ex.: a Maria pediu folga no dia 24"></textarea></label>
+    <div class="acts"><button class="btn danger" id="ok">Devolver</button></div>`);
+  ov.querySelector('#ok').onclick = async () => { const m = ov.querySelector('#mot').value.trim(); if (!m) { toast('Escreva o motivo', true); return; } ov.remove(); acao('devolver', m); };
+}
+function reabrir(){
+  const st = E.escala.status;
+  if (!confirm(st === 'aprovada' ? 'Reabrir a escala aprovada? Ela volta para rascunho e precisa ser aprovada de novo.' : 'Reabrir para editar? O envio é cancelado.')) return;
+  acao('reabrir');
+}
+async function acao(a, motivo, resumo){
+  try {
+    await rpc('esc_acao', { p_pin: S.pin, p_escala: E.escala.id, p_acao: a, p_motivo: motivo || null, p_resumo: resumo || null });
+    toast({ enviar: 'Enviada para aprovação', aprovar: 'Escala aprovada', devolver: 'Escala devolvida', reabrir: 'Escala reaberta' }[a]);
+    carregarEscala();
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ================= Exportar (imagem e impressão) ================= */
+function montarExport(){
+  const st = E.escala ? E.escala.status : 'nova', tds = D.turnos;
+  const funcs = funcionariosDaEscala(), dias = []; for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) dias.push(d);
+  let h = `<h2>Escala ${esc(DEPTOS[DEP])} · ${esc(nomePredio())}</h2>
+    <div class="sub">${nomeMes(MES)} · ${st === 'aprovada' ? `Aprovada por ${esc(E.escala.aprovada_por)} em ${quando(E.escala.aprovada_em)}` : `<span class="marca">${st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA'}</span>`}</div>
+    <table><thead><tr><th></th>${dias.map(d => `<th class="${[0, 6].includes(dow(d)) ? 'fds' : ''}">${SEM[dow(d)]}<br>${+d.slice(8)}</th>`).join('')}</tr></thead><tbody>`;
+  for (const f of funcs) h += `<tr><td class="n">${esc(f.nome)}</td>${dias.map(d => { const c = (GRADE[f.id] || {})[d] || ''; return `<td class="${clsCod(c)} ${[0, 6].includes(dow(d)) ? 'fds' : ''}" style="font-weight:700">${c}</td>`; }).join('')}</tr>`;
+  h += `</tbody></table><div style="margin-top:10px;font-size:12px">${turnosDoDep(DEP).map(t => `<b>${t.sigla}</b> ${esc(t.nome)} ${textoTurno(t)}`).join(' · ')} · ${Object.entries(OUTROS).filter(([k]) => k !== 'X').map(([k, o]) => `<b>${k}</b> ${o.nome}`).join(' · ')}</div>
+    <div class="ass"><div>Montada por ${esc((E.escala && (E.escala.enviada_por || E.escala.salvo_por)) || '')}</div><div>Aprovada por ${esc((E.escala && E.escala.aprovada_por) || '')}</div></div>`;
+  $('#exportar').innerHTML = h;
+}
+// Impressão e imagem sempre com as cores claras (o papel é branco)
+let temaAntesDeImprimir = null;
+async function imprimir(){
+  await salvarAgora();
+  temaAntesDeImprimir = document.documentElement.dataset.theme; document.documentElement.dataset.theme = 'light';
+  montarExport(); setTimeout(() => window.print(), 50);
+}
+function carregarScript(src){ return new Promise((ok, err) => { if (window.html2canvas) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => err(new Error('Sem conexão para gerar a imagem')); document.head.appendChild(s); }); }
+async function imagem(){
+  await salvarAgora();
+  const tema = document.documentElement.dataset.theme;
+  try {
+    await carregarScript(H2C_URL);
+    document.documentElement.dataset.theme = 'light'; montarExport();
+    const canvas = await html2canvas($('#exportar'), { scale: 2, backgroundColor: '#ffffff' });
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    const nome = `escala-${DEP}-${PREDIO}-${MES.slice(0, 7)}.png`, file = new File([blob], nome, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Escala' }); } catch {} }
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
+  } catch (e) { toast(e.message, true); }
+  finally { aplicarTema(tema); $('#exportar').innerHTML = ''; }
+}
+window.addEventListener('afterprint', () => { $('#exportar').innerHTML = ''; if (temaAntesDeImprimir) { aplicarTema(temaAntesDeImprimir); temaAntesDeImprimir = null; } });
+
+/* ================= Aba Equipe ================= */
+function renderEquipe(){
+  let h = `<p class="hint">Quem entra na escala de cada departamento. O sexo é necessário para a regra do domingo (mulher: folga no domingo a cada 15 dias).</p>`;
+  for (const dep of deptosVisiveis()) {
+    const fs = D.funcionarios.filter(f => f.departamento === dep).sort((a, b) => (b.ativo - a.ativo) || a.nome.localeCompare(b.nome, 'pt-BR'));
+    h += `<div class="sec-t">${DEPTOS[dep]} <span class="grow">${fs.filter(f => f.ativo).length} ativos</span>${podeMontar(dep) ? `<button class="btn sec" data-novo="${dep}">+ Pessoa</button>` : ''}</div>`;
+    h += fs.length ? `<div class="tbl">${fs.map(f => `<div class="li ${f.ativo ? '' : 'off'} ${podeMontar(dep) ? '' : 'ro'}" data-id="${f.id}">
+        <div class="t">${esc(f.nome)}<small>${esc(f.cargo || '')}${f.turno_padrao ? ' · turno ' + esc(f.turno_padrao) : ''}${f.ativo ? '' : ' · inativo'}</small></div>
+        ${f.sexo ? `<span class="tagx">${f.sexo === 'F' ? 'Mulher' : 'Homem'}</span>` : '<span class="tagx bad">Sexo?</span>'}</div>`).join('')}</div>`
+      : `<div class="empty">Ninguém cadastrado.</div>`;
+  }
+  $('#conteudo').innerHTML = h;
+  $('#conteudo').onclick = e => {
+    const n = e.target.closest('[data-novo]'); if (n) return editarFunc({ departamento: n.dataset.novo, ativo: true });
+    const li = e.target.closest('.li[data-id]'); if (!li || li.classList.contains('ro')) return;
+    editarFunc(D.funcionarios.find(f => f.id === li.dataset.id));
+  };
+}
+function editarFunc(f){
+  const deps = deptosVisiveis().filter(podeMontar);
+  const ov = modal(`<h3>${f.id ? 'Editar pessoa' : 'Nova pessoa'}</h3>
+    <label class="fld">Nome<input id="fNome" value="${esc(f.nome || '')}" autocomplete="off"></label>
+    <div class="grid2"><label class="fld">Cargo<input id="fCargo" value="${esc(f.cargo || '')}" placeholder="Ex.: Recepcionista"></label>
+    <label class="fld">Sexo<select id="fSexo"><option value="">—</option><option value="F" ${f.sexo === 'F' ? 'selected' : ''}>Mulher</option><option value="M" ${f.sexo === 'M' ? 'selected' : ''}>Homem</option></select></label></div>
+    <div class="grid2"><label class="fld">Departamento<select id="fDep">${deps.map(d => `<option value="${d}" ${d === f.departamento ? 'selected' : ''}>${DEPTOS[d]}</option>`).join('')}</select></label>
+    <label class="fld">Turno mais comum<select id="fTurno"><option value="">—</option>${D.turnos.map(t => `<option value="${t.sigla}" ${t.sigla === f.turno_padrao ? 'selected' : ''}>${t.sigla} · ${esc(t.nome)}</option>`).join('')}</select></label></div>
+    ${f.id ? `<label class="chk"><input type="checkbox" id="fAtivo" ${f.ativo ? 'checked' : ''}> Ativo (desmarque quando sair da equipe)</label>` : ''}
+    <div class="acts"><button class="btn" id="ok">Salvar</button></div>`);
+  ov.querySelector('#ok').onclick = async () => {
+    const p = { id: f.id || null, nome: ov.querySelector('#fNome').value, cargo: ov.querySelector('#fCargo').value, sexo: ov.querySelector('#fSexo').value,
+      departamento: ov.querySelector('#fDep').value, turno_padrao: ov.querySelector('#fTurno').value, ativo: f.id ? ov.querySelector('#fAtivo').checked : true };
+    if (!p.nome.trim()) { toast('Informe o nome', true); return; }
+    try { await rpc('esc_funcionario_salvar', { p_pin: S.pin, p_predio: PREDIO, p }); ov.remove(); toast('Salvo'); await recarregarDados(); }
+    catch (e) { toast(e.message, true); }
+  };
+}
+async function recarregarDados(){ D = await rpc('esc_dados', { p_pin: S.pin, p_predio: PREDIO, p_mes: MES }); render(); }
+
+/* ================= Aba Turnos ================= */
+function renderTurnos(){
+  let h = `<p class="hint">${podeTurnos() ? 'Toque num turno para editar.' : 'Só o Gerente Geral altera os turnos.'} Mudar um turno não altera escalas já aprovadas, que guardam os horários do dia em que foram salvas.</p><div class="sec-t">Turnos <span class="grow"></span>${podeTurnos() ? '<button class="btn sec" id="bNovoT">+ Turno</button>' : ''}</div><div class="tbl">`;
+  h += D.turnos.map(t => { const j = jornada(t, '2026-12-07'), erros = checarTurno(t);
+    return `<div class="li ${podeTurnos() ? '' : 'ro'}" data-t="${t.id}"><b class="pc ${corTurno(t.sigla)}" style="pointer-events:none">${esc(t.sigla)}</b>
+      <div class="t">${esc(t.nome)} · ${textoTurno(t)}<small>${hm(j.trab)} de trabalho + ${t.intervalo_min} min de intervalo · ${(t.departamentos || []).map(d => DEPTOS[d]).join(', ')}</small></div>
+      ${erros.some(x => x.n === 'e') ? '<span class="tagx bad">Fora da lei</span>' : erros.length ? '<span class="tagx">Atenção</span>' : ''}</div>`; }).join('') || '<div class="empty">Nenhum turno.</div>';
+  h += '</div>';
+  // Cobertura mínima
+  h += `<div class="sec-t">Mínimo de pessoas por turno (alerta na escala)</div><div class="tbl">`;
+  for (const dep of deptosVisiveis()) {
+    const cob = cobertura(dep), ed = podeMontar(dep);
+    h += `<div class="li ro" style="flex-wrap:wrap"><div class="t">${DEPTOS[dep]}<small><label style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-dom="${dep}" ${fechaDomingo(dep) ? 'checked' : ''} ${ed ? '' : 'disabled'}> Não funciona aos domingos (domingo = folga)</label></small></div>${turnosDoDep(dep).map(t => `<label class="hint" style="display:flex;align-items:center;gap:4px">${esc(t.sigla)} <input type="number" min="0" max="20" value="${+cob[t.sigla] || 0}" data-dep="${dep}" data-s="${esc(t.sigla)}" style="width:56px;padding:6px;border:1px solid var(--line);border-radius:var(--r);background:var(--field);color:var(--ink)" ${ed ? '' : 'disabled'}></label>`).join('')}</div>`;
+  }
+  h += '</div>';
+  $('#conteudo').innerHTML = h;
+  $('#conteudo').onclick = e => {
+    if (e.target.id === 'bNovoT') return editarTurno({ intervalo_min: 60, departamentos: Object.keys(DEPTOS) });
+    const li = e.target.closest('.li[data-t]'); if (!li || li.classList.contains('ro')) return;
+    editarTurno(D.turnos.find(t => String(t.id) === li.dataset.t));
+  };
+  $('#conteudo').querySelectorAll('input[data-dep]').forEach(inp => inp.onchange = async () => {
+    const dep = inp.dataset.dep, cob = {};
+    $('#conteudo').querySelectorAll(`input[data-dep="${dep}"]`).forEach(i => { if (+i.value > 0) cob[i.dataset.s] = +i.value; });
+    try { await rpc('esc_config_salvar', { p_pin: S.pin, p_predio: PREDIO, p_dep: dep, p_cobertura: cob, p_fecha_domingo: null }); D.config = { ...(D.config || {}), [dep]: { ...((D.config || {})[dep] || {}), cobertura: cob } }; toast('Salvo'); }
+    catch (e) { toast(e.message, true); }
+  });
+  $('#conteudo').querySelectorAll('input[data-dom]').forEach(inp => inp.onchange = async () => {
+    const dep = inp.dataset.dom;
+    try { await rpc('esc_config_salvar', { p_pin: S.pin, p_predio: PREDIO, p_dep: dep, p_cobertura: null, p_fecha_domingo: inp.checked }); D.config = { ...(D.config || {}), [dep]: { ...((D.config || {})[dep] || {}), fecha_domingo: inp.checked } }; toast('Salvo'); }
+    catch (e) { toast(e.message, true); inp.checked = !inp.checked; }
+  });
+}
+function editarTurno(t){
+  const ov = modal(`<h3>${t.id ? 'Editar turno' : 'Novo turno'}</h3>
+    <div class="grid2"><label class="fld">Sigla<input id="tS" maxlength="3" value="${esc(t.sigla || '')}" placeholder="Ex.: M"></label>
+    <label class="fld">Nome<input id="tN" value="${esc(t.nome || '')}" placeholder="Ex.: Manhã"></label></div>
+    <div class="grid3"><label class="fld">Entrada (seg–sex)<input type="time" id="tI" value="${hhmm(t.inicio)}"></label>
+    <label class="fld">Saída (seg–sex)<input type="time" id="tF" value="${hhmm(t.fim)}"></label>
+    <label class="fld">Intervalo (min)<input type="number" id="tIv" min="0" max="180" value="${t.intervalo_min ?? 60}"></label></div>
+    <div class="grid2"><label class="fld">Entrada sáb/dom (se for diferente)<input type="time" id="tIf" value="${hhmm(t.inicio_fds)}"></label>
+    <label class="fld">Saída sáb/dom<input type="time" id="tFf" value="${hhmm(t.fim_fds)}"></label></div>
+    <div class="fld">Departamentos</div>${Object.entries(DEPTOS).map(([k, n]) => `<label class="chk"><input type="checkbox" value="${k}" class="tD" ${(t.departamentos || []).includes(k) ? 'checked' : ''}> ${n}</label>`).join('')}
+    <div class="msgs" id="tMsgs"></div>
+    <div class="acts">${t.id ? '<button class="btn danger" id="del">Desativar</button><span class="grow"></span>' : ''}<button class="btn" id="ok">Salvar</button></div>`);
+  const ler = () => ({ id: t.id || null, sigla: ov.querySelector('#tS').value.trim().toUpperCase(), nome: ov.querySelector('#tN').value.trim(),
+    inicio: ov.querySelector('#tI').value, fim: ov.querySelector('#tF').value, intervalo_min: +ov.querySelector('#tIv').value,
+    inicio_fds: ov.querySelector('#tIf').value, fim_fds: ov.querySelector('#tFf').value,
+    departamentos: [...ov.querySelectorAll('.tD:checked')].map(c => c.value), ativo: true });
+  const checar = () => {
+    const p = ler(), out = [];
+    if (!/^[A-Z0-9]{1,3}$/.test(p.sigla)) out.push({ n: 'e', t: 'Sigla: 1 a 3 letras ou números' });
+    if (OUTROS[p.sigla]) out.push({ n: 'e', t: `A sigla ${p.sigla} é reservada (${OUTROS[p.sigla].nome})` });
+    if (D.turnos.some(x => x.sigla === p.sigla && x.id !== t.id)) out.push({ n: 'e', t: 'Já existe um turno com essa sigla' });
+    if (!p.nome) out.push({ n: 'e', t: 'Informe o nome' });
+    if (!p.inicio || !p.fim) out.push({ n: 'e', t: 'Informe entrada e saída' });
+    if (!!p.inicio_fds !== !!p.fim_fds) out.push({ n: 'e', t: 'Sábado/domingo: informe entrada e saída, ou deixe os dois em branco' });
+    if (!p.departamentos.length) out.push({ n: 'e', t: 'Marque ao menos um departamento' });
+    if (p.inicio && p.fim) { out.push(...checarTurno(p)); const j = jornada(p, '2026-12-07'); out.push({ n: 'i', t: `Seg–sex: ${hm(j.trab)} de trabalho por dia; 5 dias = ${hm(j.trab * 5)} na semana (limite ${regraEm(hojeISO() < '2026-12-16' ? '2026-12-16' : hojeISO()).horas}h)` }); }
+    ov.querySelector('#tMsgs').innerHTML = out.map(m => `<div class="${m.n}">${esc(m.t)}</div>`).join('');
+    return out;
+  };
+  ov.querySelectorAll('input').forEach(i => i.oninput = checar); checar();
+  ov.querySelector('#ok').onclick = async () => {
+    if (checar().some(m => m.n === 'e')) { toast('Corrija os erros do turno', true); return; }
+    try { await rpc('esc_turno_salvar', { p_pin: S.pin, p_predio: PREDIO, p: ler() }); ov.remove(); toast('Turno salvo'); await recarregarDados(); }
+    catch (e) { toast(e.message, true); }
+  };
+  const del = ov.querySelector('#del');
+  if (del) del.onclick = async () => {
+    if (!confirm('Desativar este turno? Ele some da paleta; escalas que já o usam passam a mostrar erro até serem trocadas.')) return;
+    try { await rpc('esc_turno_salvar', { p_pin: S.pin, p_predio: PREDIO, p: { ...ler(), ativo: false } }); ov.remove(); await recarregarDados(); }
+    catch (e) { toast(e.message, true); }
+  };
+}
+
+/* ================= Aba Regras ================= */
+function renderRegras(){
+  const R = (t, tipo, txt, base) => `<div class="regra"><b>${t}<span class="tp ${tipo}">${tipo === 'b' ? 'Bloqueia o envio' : 'Alerta'}</span></b>${txt}<br><small>${base}</small></div>`;
+  $('#conteudo').innerHTML = `<p class="hint">O app confere a escala enquanto ela é montada. <b>Bloqueio</b>: a escala não pode ser enviada para aprovação até ser corrigida. <b>Alerta</b>: pode enviar, mas o Gerente Geral vê o aviso.</p>
+  <div class="regras">
+    ${R('Carga semanal', 'b', 'Até 15/12/2026: 44h. De 16/12/2026: <b>42h</b>. De 16/12/2027: <b>40h</b>. A semana vai de segunda a domingo; a semana de 14 a 20/12/2026 já segue as 42h.', 'Emenda Constitucional 141/2026')}
+    ${R('Duas folgas por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 dias sem trabalho em cada semana (podem não ser seguidos). Antes disso, 1. Férias, atestado e "não se aplica" contam como dia sem trabalho.', 'Emenda Constitucional 141/2026')}
+    ${R('No máximo 6 dias seguidos', 'b', 'A folga tem de vir até o 7º dia; trabalhar 7 dias seguidos não é permitido, mesmo com 2 folgas na semana (ex.: folga no início de uma semana e no fim da outra).', 'CLT art. 67; OJ 410 do TST')}
+    ${R('11h de descanso entre jornadas', 'b', 'Entre a saída de um dia e a entrada do dia seguinte. Ex.: Tarde (sai 22:00) seguida de Manhã (entra 07:00) dá só 9h: bloqueado.', 'CLT art. 66')}
+    ${R('Mulher: domingo de folga a cada 15 dias', 'b', 'Não pode trabalhar dois domingos seguidos.', 'CLT art. 386')}
+    ${R('Homem: domingo de folga ao menos a cada 7 semanas', 'a', 'Aviso quando chega a 7 domingos seguidos de trabalho. Confira a convenção do Sindifícios.', 'Lei 605/1949 e portaria do MTE sobre repouso em domingo')}
+    ${R('Intervalo para almoço', 'b', 'Jornada acima de 6h: mínimo 1h (máximo 2h). De 4h a 6h: 15 min. Conferido no cadastro do turno.', 'CLT art. 71')}
+    ${R('Jornada diária', 'b', 'Máximo 10h por dia (8h + 2h extras). Acima de 8h aparece alerta: só vale com acordo ou convenção coletiva.', 'CLT art. 59; EC 141/2026')}
+    ${R('Todos os dias marcados', 'b', 'Cada pessoa precisa ter um código em todos os dias do mês (turno, F, FE, AF ou X).', 'Regra do app')}
+    ${R('Sexo informado', 'b', 'Necessário para aplicar a regra do domingo.', 'Regra do app')}
+    ${R('Departamento fechado no domingo', 'b', 'Governança e Manutenção não funcionam aos domingos: o domingo já vem marcado como folga e não aceita turno. Muda na aba Turnos.', 'Regra da operação')}
+    ${R('Mínimo de pessoas por turno', 'a', 'Configurado na aba Turnos, por departamento (ex.: Recepção com ao menos 1 em cada turno).', 'Regra da operação')}
+  </div>
+  <p class="hint" style="margin-top:14px">Fluxo: o líder monta (governanta na Governança, líder de manutenção na Manutenção, gerente assistente na Recepção) → envia → o Gerente Geral aprova ou devolve com o motivo. Escala aprovada só muda se for reaberta, e aí precisa de nova aprovação.</p>`;
+}
+
+/* ================= Aba Acessos ================= */
+async function renderAcessos(){
+  $('#conteudo').innerHTML = '<div class="empty">Carregando…</div>';
+  let us;
+  try { us = await rpc('esc_usuarios_listar', { p_pin: S.pin, p_predio: PREDIO }); }
+  catch (e) { $('#conteudo').innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  $('#conteudo').innerHTML = `<p class="hint">Só os líderes entram no app, cada um com um PIN de 4 dígitos.</p>
+    <div class="sec-t">Acessos · ${esc(nomePredio())}<span class="grow"></span><button class="btn sec" id="bNovoU">+ Acesso</button></div>
+    <div class="tbl">${us.map(u => `<div class="li ${u.ativo ? '' : 'off'}" data-u="${u.id}"><div class="t">${esc(u.nome)}${u.titulo ? ' · ' + esc(u.titulo) : ''}<small>${PAPEIS[u.papel]}${u.departamento ? ' · ' + DEPTOS[u.departamento] : ''}${u.predio ? '' : ' · todos os prédios'}${u.ativo ? '' : ' · desativado'}</small></div></div>`).join('')}</div>`;
+  $('#bNovoU').onclick = () => editarUsuario({ papel: 'montador', ativo: true });
+  $('#conteudo').querySelectorAll('.li[data-u]').forEach(li => li.onclick = () => editarUsuario(us.find(u => u.id === li.dataset.u)));
+}
+function editarUsuario(u){
+  const papeis = Object.entries(PAPEIS).filter(([k]) => k !== 'admin' || papel() === 'admin');
+  const ov = modal(`<h3>${u.id ? 'Editar acesso' : 'Novo acesso'}</h3>
+    <div class="grid2"><label class="fld">Nome<input id="uN" value="${esc(u.nome || '')}"></label>
+    <label class="fld">Cargo (aparece no topo)<input id="uT" value="${esc(u.titulo || '')}" placeholder="Ex.: Governanta"></label></div>
+    <label class="fld">Perfil<select id="uP">${papeis.map(([k, n]) => `<option value="${k}" ${k === u.papel ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label class="fld" id="uDw">Departamento<select id="uD">${Object.entries(DEPTOS).map(([k, n]) => `<option value="${k}" ${k === u.departamento ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label class="fld">PIN (4 dígitos)${u.id ? ' · deixe em branco para manter' : ''}<input id="uPin" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+    ${u.id ? `<label class="chk"><input type="checkbox" id="uA" ${u.ativo ? 'checked' : ''}> Ativo</label>` : ''}
+    <div class="hint" style="margin-top:8px">Novo acesso fica no prédio ${esc(nomePredio())}.</div>
+    <div class="acts"><button class="btn" id="ok">Salvar</button></div>`);
+  const dep = () => ov.querySelector('#uDw').classList.toggle('hidden', ov.querySelector('#uP').value !== 'montador');
+  ov.querySelector('#uP').onchange = dep; dep();
+  ov.querySelector('#ok').onclick = async () => {
+    const pin = ov.querySelector('#uPin').value.trim(), pp = ov.querySelector('#uP').value;
+    if (pin && !/^\d{4}$/.test(pin)) { toast('O PIN tem 4 dígitos', true); return; }
+    const p = { id: u.id || null, nome: ov.querySelector('#uN').value, titulo: ov.querySelector('#uT').value, papel: pp,
+      departamento: pp === 'montador' ? ov.querySelector('#uD').value : '', pin, ativo: u.id ? ov.querySelector('#uA').checked : true };
+    if (!p.nome.trim()) { toast('Informe o nome', true); return; }
+    try { await rpc('esc_usuario_salvar', { p_pin: S.pin, p_predio: PREDIO, p }); ov.remove(); toast('Salvo'); renderAcessos(); }
+    catch (e) { toast(e.message, true); }
+  };
+}
+
+/* ================= Início ================= */
+buildPad();
+(function(){ const s = store.get('sessao'); if (s && s.pin && s.user) { S = s; start(); } })();
+</script>
+</body>
+</html>
