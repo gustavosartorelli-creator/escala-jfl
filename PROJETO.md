@@ -75,6 +75,9 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
   dia de trabalho no horário da pessoa em branco (Governança) ou escrito "09–18" (Manutenção) conforme `esc_config.celula`, verde-claro;
   outro horário escrito; X/BH/FE…; fim de semana cinza-azulado; feriado pêssego; rodapé Manhã/Inter/Tarde/Total no dia (até 9h59, 10h–12h59,
   a partir de 13h) e totais Trab., X, BH… à direita. As siglas ficam só por dentro (banco e aba Turnos).
+  Folgas previstas no mês (`folgasPrevistas`, conta do Gustavo): para cada domingo do mês, as folgas da semana (1 na 6x1, 2 na 5x2) + feriados
+  fora do domingo. Coluna "Folgas de N" conta X, FC, FP, XX e BH: verde = bate, amarelo = menos, cinza = mais; sem cor para quem teve FE, AT, F ou NA.
+  A semana que cruza a virada do mês conta no mês do domingo, então dezembro tende a dar "a mais" (ex.: BH em 31/12 é folga da semana de 28/12 a 03/01).
   A paleta tem "Trabalha" (horário da pessoa), os outros horários escritos e os códigos. Escala nova já vem preenchida com o horário de cada pessoa
   (o líder só marca as folgas), como a planilha em branco.
 - Márcio (JML) em 22→23/01/2027: só 10h36 entre 12–21:24 e 08:00 (bloqueio; o Willian precisa trocar).

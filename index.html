@@ -163,6 +163,11 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 .grade tr.secao th span{position:sticky;left:10px}
 .grade.larga td.c{min-width:60px;font-size:11px}
 .grade td.c.kout{font-size:11px}
+.folgasprev{font-size:14px;font-weight:600;margin:0 2px 8px}
+.grade td.res.fok{background:var(--ok-bg);color:var(--ok);font-weight:700}
+.grade td.res.fmenos{background:var(--warn-bg);color:var(--warn);font-weight:700}
+.grade td.res.fmais{background:var(--fds2);color:var(--ink);font-weight:700}
+.grade thead th.res small{font-weight:500;font-size:10px}
 .legenda b.lfds{background:var(--fds2)} .legenda b.lfer{background:var(--fer)}
 .pc.k0,.pc.k1,.pc.k2,.pc.k3,.pc.kF,.pc.kFE,.pc.kAF,.pc.kX,.pc.kFA{border-color:transparent}
 .grade thead th.fer{background:#FCE3CF;color:#8A4B12}
@@ -301,7 +306,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v6';
+const VERSAO = 'v7';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -803,6 +808,20 @@ const ordemSecao = s => { const i = SECOES.indexOf(s); return i < 0 ? 50 : i; };
 const SEM_PLAN = ['D', 'SE', 'T', 'Q', 'Q', 'SEX', 'S'];
 const PERIODOS = [['Manhã', 0, 600], ['Inter', 600, 780], ['Tarde', 780, 1440]]; // até 9h59, 10h–12h59, a partir de 13h
 
+// Folgas previstas no mês: para cada domingo do mês, as folgas da semana (1 na 6x1, 2 na 5x2),
+// mais os feriados que não caem no domingo (o domingo já é folga)
+const CODIGOS_FOLGA = ['X', 'FC', 'FP', 'XX', 'BH'];
+function folgasPrevistas(){
+  const fim = fimDoMes(MES), doms = [], fers = [];
+  for (let d = MES; d <= fim; d = addDias(d, 1)) { if (dow(d) === 0) doms.push(d); else if (FERIADOS[d]) fers.push(d); }
+  const porDom = doms.map(d => regraEm(segundaDe(d)).folgas), soma = porDom.reduce((a, b) => a + b, 0);
+  const todas2 = porDom.every(n => n === 2), todas1 = porDom.every(n => n === 1);
+  const parteDom = todas2 ? `${doms.length} domingos × 2 = ${soma}` : todas1 ? `${doms.length} domingos × 1 = ${soma}`
+    : `${doms.length} domingos: ${porDom.filter(n => n === 1).length} semana(s) 6x1 × 1 + ${porDom.filter(n => n === 2).length} semana(s) 5x2 × 2 = ${soma}`;
+  const total = soma + fers.length;
+  return { total, texto: `Folgas previstas no mês: ${parteDom}${fers.length ? ` + ${fers.length} feriado${fers.length > 1 ? 's' : ''} (${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')})` : ''} = ${total}` };
+}
+
 function tabelaEscala({ ed = false, marcas = false } = {}){
   const corte = corteDoMes(), dias = V.dias, funcs = V.funcs;
   const usados = Object.keys(OUTROS).filter(k => k === 'X' || funcs.some(f => dias.some(d => (GRADE[f.id] || {})[d] === k)));
@@ -813,8 +832,9 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
     const tit = [fer ? 'Feriado: ' + fer : '', cov ? 'Abaixo do mínimo: ' + cov.join(', ') : ''].filter(Boolean).join('\n');
     h += `<th class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${fer ? 'fer' : ''} ${cov ? 'cov' : ''}" ${tit ? `title="${esc(tit)}"` : ''}>${SEM_PLAN[w]}<b>${+d.slice(8)}</b></th>`;
   }
-  h += `<th class="res">Trab.</th>${usados.map(k => `<th class="res">${k === 'F' ? 'Falta' : k}</th>`).join('')}</tr></thead><tbody>`;
-  const ncol = 2 + (corte ? 1 : 0) + dias.length + 1 + usados.length;
+  const prev = folgasPrevistas();
+  h += `<th class="res">Trab.</th><th class="res" title="${esc(prev.texto)}">Folgas<br><small>de ${prev.total}</small></th>${usados.map(k => `<th class="res">${k === 'F' ? 'Falta' : k}</th>`).join('')}</tr></thead><tbody>`;
+  const ncol = 2 + (corte ? 1 : 0) + dias.length + 2 + usados.length;
   // Seções na ordem da planilha
   const secoes = [];
   for (const f of funcs) { const s = f.secao || (f.cargo || 'EQUIPE').toUpperCase(); let x = secoes.find(x => x.nome === s); if (!x) secoes.push(x = { nome: s, fs: [] }); x.fs.push(f); }
@@ -832,7 +852,12 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
         if (ci.c && !OUTROS[ci.c]) trab++; else if (ci.c) cont[ci.c] = (cont[ci.c] || 0) + 1;
         h += `<td class="c ${ed ? '' : 'ro'} ${ci.cls} ${[0, 6].includes(w) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${w === 1 ? 'seg' : ''} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (ci.c && !OUTROS[ci.c] && turnoEm(ci.c, d) ? ' · ' + horaLonga(turnoEm(ci.c, d), d) : ci.c ? ' · ' + OUTROS[ci.c].nome : '') + (m ? '\n' + m.msgs.join('\n') : ''))}">${esc(ci.txt)}</td>`;
       }
-      h += `<td class="res num">${trab}</td>${usados.map(k => `<td class="res num">${cont[k] || ''}</td>`).join('')}</tr>`;
+      // Folgas do mês (X, FC, FP, XX, BH) contra as previstas; quem teve férias, atestado, falta ou admissão no mês fica sem cor
+      const folgas = CODIGOS_FOLGA.reduce((a, k) => a + (cont[k] || 0), 0);
+      const fora = ['FE', 'AT', 'F', 'NA'].some(k => cont[k]);
+      const cf = fora ? '' : folgas === prev.total ? 'fok' : folgas < prev.total ? 'fmenos' : 'fmais';
+      const tf = fora ? 'Teve férias, atestado, falta ou admissão no mês: o previsto não se aplica' : folgas === prev.total ? 'Bate com o previsto' : folgas < prev.total ? `${prev.total - folgas} a menos que o previsto` : `${folgas - prev.total} a mais que o previsto`;
+      h += `<td class="res num">${trab}</td><td class="res num ${cf}" title="${esc(tf)}">${folgas}</td>${usados.map(k => `<td class="res num">${cont[k] || ''}</td>`).join('')}</tr>`;
     }
   }
   // Rodapé como o da planilha: quantos por período e no dia
@@ -845,7 +870,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
       const n = funcs.filter(f => { const c = (GRADE[f.id] || {})[d], t = c && !OUTROS[c] && turnoEm(c, d); return t && (i < 0 || periodoDe(t, d) === i); }).length;
       const fechado = dow(d) === 0 && fechaDomingo(DEP);
       return `<td class="${n || fechado || i >= 0 ? '' : 'zero'} ${[0, 6].includes(dow(d)) ? 'fds' : ''}">${n}</td>`;
-    }).join('')}<td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}</tr>`;
+    }).join('')}<td class="res"></td><td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}</tr>`;
   }
   return h + `</tfoot></table>`;
 }
@@ -907,6 +932,7 @@ function renderEscala(){
   }
 
   // Grade no formato da planilha
+  h += `<div class="folgasprev">${esc(folgasPrevistas().texto)}</div>`;
   h += `<div class="wrap" id="wrap">${tabelaEscala({ ed, marcas: true })}</div>`;
 
   // Legenda, como a da planilha
@@ -1054,6 +1080,7 @@ function montarExport(){
   const dias = V.dias;
   let h = `<h2 class="mes">${esc(nomeMes(MES).toUpperCase())}</h2><h2>Escala de trabalho · ${esc(nomePredio())} · ${esc(DEPTOS[DEP])}</h2>
     <div class="sub">${st === 'aprovada' ? `Aprovada por ${esc(E.escala.aprovada_por)} em ${quando(E.escala.aprovada_em)}` : `<span class="marca">${st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA'}</span>`}</div>
+    <div style="font-size:13px;font-weight:600;margin:0 0 6px">${esc(folgasPrevistas().texto)}</div>
     ${tabelaEscala({ ed: false, marcas: false })}
     <div style="margin-top:10px;font-size:12px">Legenda: ${celulaEstilo(DEP) === 'vazio' ? 'em branco = trabalha no horário da pessoa' : 'horário = trabalho (verde-claro = horário da pessoa)'} · ${Object.entries(OUTROS).filter(([k]) => k !== 'NA').map(([k, o]) => `<b>${k}</b> = ${o.nome.toLowerCase()}`).join(' · ')} · fundo cinza-azulado = fim de semana${dias.some(d => FERIADOS[d]) ? ` · fundo pêssego = feriado (${dias.filter(d => FERIADOS[d]).map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')})` : ''}</div>
     <div class="ass"><div>Montada por ${esc((E.escala && (E.escala.enviada_por || E.escala.salvo_por)) || '')}</div><div>Aprovada por ${esc((E.escala && E.escala.aprovada_por) || '')}</div></div>`;
