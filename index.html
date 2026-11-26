@@ -307,7 +307,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v8';
+const VERSAO = 'v9';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -354,9 +354,9 @@ const REGRA = {
   // Premissas JFL (nov/2026): priorizar até 5 dias seguidos; 6 só excepcionalmente (alerta); 7 ou mais nunca (bloqueio)
   diasSeguidosIdeal: 5,
   diasSeguidosMax: 6,
-  domingoMulherSemanas: 2,  // mulher: revezamento quinzenal (CLT art. 386) — alerta (decisão do Gustavo)
+  domingoMulherSemanas: 2,  // mulher: revezamento quinzenal (CLT art. 386) — bloqueia (premissas: "garantir")
   domingoDesde: '2026-12-16', // os domingos só contam a partir daqui (decisão do Gustavo em 26/11/2026)
-  domingoHomemSemanas: 4,   // homem: ao menos 1 domingo de folga a cada 4 semanas (premissas JFL) — alerta
+  domingoHomemSemanas: 4,   // homem: ao menos 1 domingo de folga a cada 4 semanas (premissas JFL) — bloqueia
   jornadaMax: 10 * 60,      // 8h + 2h extras (CLT art. 59)
   jornadaNormal: 8 * 60 + 24 // 8h24 é a jornada padrão da 5x2 (premissas JFL)
 };
@@ -386,12 +386,21 @@ const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','ag
 const nomeMes = mes => MESES[+mes.slice(5, 7) - 1] + ' ' + mes.slice(0, 4);
 /* Período da escala (premissas JFL, nov/2026): do dia 16 ao dia 15 do mês seguinte. MES guarda o início (dia 16). */
 const addMeses = (iso, n) => { const d = dUTC(iso); d.setUTCMonth(d.getUTCMonth() + n); return isoDe(d); };
-const inicioPer = iso => { const d = iso.slice(0, 8) + '16'; return +iso.slice(8) >= 16 ? d : addMeses(d, -1); };
-const fimPer = p => addDias(addMeses(p, 1), -1);
-const perAnterior = p => addMeses(p, -1);
+// Primeira escala (pedido do Gustavo, 26/11/2026): 01/12/2026 a 15/01/2027, para a equipe se acostumar. Depois, 16 → 15.
+// O período anterior a ela fica 16/11 a 30/11/2026. Igual a esc__periodo no banco.
+const PER_ESPECIAIS = [{ inicio: '2026-12-01', fim: '2027-01-15' }];
+const inicio16 = iso => { const d = iso.slice(0, 8) + '16'; return +iso.slice(8) >= 16 ? d : addMeses(d, -1); };
+const inicioPer = iso => { const e = PER_ESPECIAIS.find(e => iso >= e.inicio && iso <= e.fim); return e ? e.inicio : inicio16(iso); };
+const fimPer = p => {
+  const e = PER_ESPECIAIS.find(e => e.inicio === p); if (e) return e.fim;
+  const fim = addDias(addMeses(p, 1), -1), corta = PER_ESPECIAIS.find(e => e.inicio > p && e.inicio <= fim);
+  return corta ? addDias(corta.inicio, -1) : fim;
+};
+const perAnterior = p => inicioPer(addDias(p, -1));
+const perSeguinte = p => inicioPer(addDias(fimPer(p), 1));
 const mesNome = iso => MESES[+iso.slice(5, 7) - 1];
 // "dezembro - janeiro 2027" (como as abas antigas da planilha) e "16/12/2026 a 15/01/2027"
-const nomePer = p => { const f = fimPer(p); return `${mesNome(p)} - ${mesNome(f)} ${f.slice(0, 4)}`; };
+const nomePer = p => { const f = fimPer(p); return p.slice(0, 7) === f.slice(0, 7) ? `${mesNome(p)} ${f.slice(0, 4)}` : `${mesNome(p)} - ${mesNome(f)} ${f.slice(0, 4)}`; };
 const datasPer = p => { const f = fimPer(p); return `${ddmm(p)}/${p.slice(0, 4)} a ${ddmm(f)}/${f.slice(0, 4)}`; };
 const SEM = ['D','S','T','Q','Q','S','S'];
 const SEM_NOME = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
@@ -483,9 +492,9 @@ function start(){
   $('#selPredio').onchange = async () => { await salvarAgora(); PREDIO = $('#selPredio').value; store.set('predio', PREDIO); mostrarLogoPredio(); carregar(); };
   // Períodos 16→15: 2 para trás e 4 à frente; padrão: o próximo período (o que começa no próximo dia 16)
   const hoje = hojeISO(), atual = inicioPer(hoje);
-  const meses = []; let m = addMeses(atual, -2);
-  for (let i = 0; i < 7; i++) { meses.push(m); m = addMeses(m, 1); }
-  const proximo = addMeses(atual, 1);
+  const meses = []; let m = perAnterior(perAnterior(atual));
+  for (let i = 0; i < 7; i++) { meses.push(m); m = perSeguinte(m); }
+  const proximo = perSeguinte(atual);
   MES = meses.includes(store.get('per')) ? store.get('per') : proximo;
   $('#selMes').innerHTML = meses.map(x => `<option value="${x}">${ddmm(x)} a ${ddmm(fimPer(x))}/${fimPer(x).slice(2, 4)}</option>`).join('');
   $('#selMes').value = MES;
@@ -511,7 +520,7 @@ async function carregar(){
 }
 // Setas do mês: anda um mês e, se ele não estiver na lista do topo, acrescenta
 async function irMes(delta){
-  const m = addMeses(MES, delta);
+  const m = delta < 0 ? perAnterior(MES) : perSeguinte(MES);
   const sel = $('#selMes');
   if (![...sel.options].some(o => o.value === m)) {
     const op = new Option(`${ddmm(m)} a ${ddmm(fimPer(m))}/${fimPer(m).slice(2, 4)}`, m), depois = [...sel.options].find(o => o.value > m);
@@ -708,10 +717,10 @@ function validar(){
       while (n < 60 && p >= REGRA.domingoDesde) { const y = info(f, p); if (y.tipo !== 'trab') break; n++; p = addDias(p, -7); }
       if (f.sexo === 'F' && n >= REGRA.domingoMulherSemanas) {
         const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; mulher precisa de folga no domingo a cada 15 dias (CLT art. 386)`;
-        marca(f.id, d, 'a', msg); add('a', f, msg);
+        marca(f.id, d, 'b', msg); add('b', f, msg);
       } else if (f.sexo === 'M' && n >= REGRA.domingoHomemSemanas) {
         const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; homem precisa de ao menos 1 domingo de folga a cada 4 semanas`;
-        marca(f.id, d, 'a', msg); add('a', f, msg);
+        marca(f.id, d, 'b', msg); add('b', f, msg);
       }
     }
 
@@ -841,11 +850,15 @@ const PERIODOS = [['Manhã', 0, 600], ['Inter', 600, 780], ['Tarde', 780, 1440]]
 // Feriado trabalhado é compensado à parte, com FC.
 const CODIGOS_FOLGA = FOLGA_REGULAR;
 function folgasPrevistas(){
+  // Semanas ainda na 6x1 (1 folga) contam só o domingo; semanas na 5x2 contam sábado e domingo
   const fim = fimPer(MES); let sab = 0, dom = 0; const fers = [];
-  for (let d = MES; d <= fim; d = addDias(d, 1)) { if (dow(d) === 6) sab++; if (dow(d) === 0) dom++; if (FERIADOS[d]) fers.push(d); }
-  if (fim < '2026-12-16') return { total: dom, texto: `Referência de folgas no período (6x1, antes da mudança): ${dom} domingos = ${dom} folgas` };
+  for (let d = MES; d <= fim; d = addDias(d, 1)) {
+    if (dow(d) === 0) dom++;
+    if (dow(d) === 6 && regraEm(segundaDe(d)).folgas === 2) sab++;
+    if (FERIADOS[d]) fers.push(d);
+  }
   const total = sab + dom;
-  return { total, texto: `Referência de folgas no período: ${sab} sábados + ${dom} domingos = ${total} folgas regulares (X)${fers.length ? `. Feriados: ${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')} (quem trabalhar ganha folga compensatória, FC, à parte)` : ''}` };
+  return { total, texto: `Referência de folgas no período: ${sab} sábados${sab && regraEm(MES).folgas === 1 ? ' (só das semanas já na 5x2)' : ''} + ${dom} domingos = ${total} folgas regulares (X)${fers.length ? `. Feriados: ${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')} (quem trabalhar ganha folga compensatória, FC, à parte)` : ''}` };
 }
 
 function tabelaEscala({ ed = false, marcas = false } = {}){
@@ -1285,14 +1298,14 @@ function renderRegras(){
   $('#conteudo').innerHTML = `<p class="hint">O app confere a escala enquanto ela é montada. <b>Bloqueio</b>: a escala não pode ser enviada para aprovação até ser corrigida. <b>Alerta</b>: pode enviar, mas o Gerente Geral vê o aviso.</p>
   <div class="regras">
     ${R('Carga semanal', 'b', 'Até a semana de 14 a 20/12/2026: 44h (acima disso aparece só alerta de hora extra). A partir de 21/12/2026: <b>42h</b>, bloqueia. A partir de 20/12/2027: <b>40h</b>. A semana vai de segunda a domingo. A semana em que a lei muda (14 a 20/12/2026, mudança na quarta) é de transição: ainda segue a regra antiga, e o app mostra um alerta para lembrar. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
-    ${R('Período da escala: 16 a 15', 'b', 'Cada escala vai do dia 16 ao dia 15 do mês seguinte, e o app confere a continuidade com a escala anterior (semanas, dias seguidos, 11h e domingos).', 'Premissas JFL 5x2, item 07')}
+    ${R('Período da escala: 16 a 15', 'b', 'Cada escala vai do dia 16 ao dia 15 do mês seguinte. A primeira, para a equipe se acostumar, vai de 01/12/2026 a 15/01/2027; os períodos 16 a 15 começam em 16/01/2027. O app confere a continuidade com a escala anterior (semanas, dias seguidos, 11h e domingos).', 'Premissas JFL 5x2, item 07')}
     ${R('Duas folgas regulares por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 folgas regulares (X ou FP) em cada semana, seguidas ou alternadas. Antes disso, 1. Férias, atestado, falta e NA reduzem o que falta naquela semana. <b>FC, BH e XX não substituem</b> a folga da semana.', 'EC 141/2026; Premissas JFL 5x2, itens 02 e 05')}
     ${R('Dias seguidos de trabalho', 'b', 'Ideal: até 5. 6 dias seguidos só excepcionalmente, na virada da semana (alerta). 7 ou mais: não permitido (bloqueia), inclusive na virada de uma escala para a outra.', 'Premissas JFL 5x2, item 03; CLT art. 67')}
     ${R('Feriado trabalhado', 'a', 'Quem trabalha no feriado precisa de uma folga compensatória (FC) no período, à parte das 2 folgas da semana.', 'Premissas JFL 5x2, item 05; Convenção Coletiva')}
     ${R('Equalização das folgas', 'a', 'Referência de folgas regulares no período: quantidade de sábados + domingos. A coluna "Folgas" fica verde quando bate, amarela quando falta e cinza quando passa; diferenças precisam de justificativa.', 'Premissas JFL 5x2, item 06')}
     ${R('11h de descanso entre jornadas', 'b', 'Entre a saída de um dia e a entrada do dia seguinte. Ex.: Tarde (sai 22:00) seguida de Manhã (entra 07:00) dá só 9h: bloqueado.', 'CLT art. 66')}
-    ${R('Mulher: revezamento quinzenal do domingo', 'a', 'Aviso quando trabalha dois domingos seguidos. Os domingos contam a partir de 16/12/2026.', 'CLT art. 386; Premissas JFL 5x2, item 04')}
-    ${R('Homem: 1 domingo de folga a cada 4 semanas', 'a', 'Aviso quando chega a 4 domingos seguidos de trabalho (contando a partir de 16/12/2026). Sempre que der, buscar o revezamento quinzenal para todos.', 'Premissas JFL 5x2, item 04')}
+    ${R('Mulher: revezamento quinzenal do domingo', 'b', 'Não pode trabalhar dois domingos seguidos. Os domingos contam a partir de 16/12/2026.', 'CLT art. 386; Premissas JFL 5x2, item 04')}
+    ${R('Homem: 1 domingo de folga a cada 4 semanas', 'b', 'Não pode trabalhar 4 domingos seguidos (contando a partir de 16/12/2026). Sempre que der, buscar o revezamento quinzenal para todos.', 'Premissas JFL 5x2, item 04')}
     ${R('Intervalo para almoço', 'b', 'Jornada acima de 6h: mínimo 1h (máximo 2h). De 4h a 6h: 15 min. Conferido no cadastro do turno.', 'CLT art. 71')}
     ${R('Jornada diária', 'b', 'Padrão da 5x2: 8h24 de trabalho + 1h de intervalo (9h24 entre entrada e saída). Acima de 8h24 aparece alerta (hora extra); acima de 10h bloqueia.', 'Premissas JFL 5x2, item 01; CLT art. 59')}
     ${R('Todos os dias marcados', 'b', 'Cada pessoa precisa ter um código em todos os dias do mês: um turno ou X folga, FC compensa feriado, FP preferência de folga, XX folga aniversário, BH banco de horas, FE férias, AT atestado, F falta, NA não se aplica (antes da admissão ou depois do desligamento). Feriados aparecem destacados no topo da grade.', 'Regra do app')}
