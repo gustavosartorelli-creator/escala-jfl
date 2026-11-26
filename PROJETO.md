@@ -61,6 +61,8 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Maria Gilda (JML) em janeiro: a planilha só tinha 1–3; o Gustavo pediu "como dezembro" e foi preenchido R de segunda a sexta, X sábado e domingo (5x2, 42h).
 
 ## Decisões do Gustavo (26/11/2026)
+- **Por enquanto só o JML faz escala no app.** Tudo o que o Gustavo disser sobre equipes e regras vale para o JML; os outros prédios
+  ficam como estão (equipe da Governança importada, sem sexo preenchido). No JML: Governança toda feminina, Manutenção toda masculina.
 - Semana de transição 14–20/12/2026 (a lei muda na quarta): segue a regra antiga (44h, 1 folga; excesso = alerta de hora extra), com um alerta
   lembrando; 42h e 2 folgas a partir de 21/12/2026. No código: a semana usa a regra da segunda-feira que a abre (`regraEm(ds[0])`).
 - Domingo das mulheres (CLT 386) é **alerta**, não bloqueio, e os domingos só contam a partir de 16/12/2026 (`REGRA.domingoDesde`).
