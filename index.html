@@ -301,7 +301,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v5';
+const VERSAO = 'v6';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -574,6 +574,17 @@ function funcionariosDaEscala(){
     .sort((a, b) => (b.ativo - a.ativo) || (a.ordem - b.ordem) || a.nome.localeCompare(b.nome, 'pt-BR'));
 }
 
+// Dias em ordem → "03/01, 05/01 a 07/01, 20/01"
+function periodos(ds){
+  const out = []; let ini = null, ant = null;
+  for (const d of ds.concat([null])) {
+    if (d && ant && addDias(ant, 1) === d) { ant = d; continue; }
+    if (ini) out.push(ini === ant ? ddmm(ini) : `${ddmm(ini)} a ${ddmm(ant)}`);
+    ini = ant = d;
+  }
+  return out.join(', ');
+}
+
 function validar(){
   const ini = MES, fim = fimDoMes(MES), antIni = mesAnterior(MES);
   const ant = E.anterior, antTurnos = (ant && ant.turnos && ant.turnos.length) ? ant.turnos : D.turnos;
@@ -607,17 +618,17 @@ function validar(){
     const tot = { min: 0, folgas: 0, domFolga: 0 }; totais[f.id] = tot;
     if (!f.sexo && !f.sem_regras) add('b', f, 'Informe se é mulher ou homem (aba Equipe): a regra do domingo depende disso');
     // Dias vazios e códigos inválidos
-    let vazios = 0;
+    let vazios = 0; const diasVazios = [];
     for (const d of dias) {
       const x = info(f, d);
-      if (x.tipo === 'vazio') vazios++;
+      if (x.tipo === 'vazio') { vazios++; diasVazios.push(d); }
       if (x.tipo === 'invalido') { marca(f.id, d, 'b', `Turno "${x.c}" não existe mais`); add('b', f, `${ddmm(d)}: turno "${x.c}" não existe mais`); }
       if (x.tipo === 'foraVigencia') { const msg = `${ddmm(d)}: o turno ${x.c} não vale nesta data (${D.turnos.filter(t => t.sigla === x.c).map(t => textoTurno(t) + periodo(t)).join('; ')})`; marca(f.id, d, 'b', msg); add('b', f, msg); }
       if (x.tipo === 'trab' && !doDep(x.t, DEP)) { marca(f.id, d, 'b', `Turno ${x.c} não é deste departamento`); add('b', f, `${ddmm(d)}: turno ${x.c} não é usado em ${DEPTOS[DEP]}`); }
       if (x.tipo === 'trab') tot.min += x.trab;
       if (x.tipo === 'folga') { tot.folgas++; if (dow(d) === 0) tot.domFolga++; }
     }
-    if (vazios) add('b', f, `${vazios} dia${vazios > 1 ? 's' : ''} sem marcação`);
+    if (vazios) add('b', f, `${vazios} dia${vazios > 1 ? 's' : ''} sem marcação (${periodos(diasVazios)})`);
     if (f.sem_regras) continue; // cooperada / não CLT: só confere se todos os dias estão marcados
 
     // Semanas (segunda a domingo) que tocam o mês: horas e folgas

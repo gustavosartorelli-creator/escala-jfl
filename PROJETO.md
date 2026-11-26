@@ -66,7 +66,8 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Semana de transição 14–20/12/2026 (a lei muda na quarta): segue a regra antiga (44h, 1 folga; excesso = alerta de hora extra), com um alerta
   lembrando; 42h e 2 folgas a partir de 21/12/2026. No código: a semana usa a regra da segunda-feira que a abre (`regraEm(ds[0])`).
 - Domingo das mulheres (CLT 386) é **alerta**, não bloqueio, e os domingos só contam a partir de 16/12/2026 (`REGRA.domingoDesde`).
-- Cooperadas ficam como estão: `esc_funcionarios.sem_regras` (opção "Cooperada / não CLT" na Equipe) tira a pessoa das regras de horas, folgas e domingos.
+- Escala só tem funcionário fixo registrado: as Cooperadas 1 e 2 do JML foram desativadas e tiradas de dez/jan (as linhas sem nome da planilha
+  eram vagas, não cooperadas). A opção `esc_funcionarios.sem_regras` ("Cooperada / não CLT" na Equipe) continua no app, sem uso.
 - Mês escrito em maiúsculas e negrito acima da escala, com setas ‹ › para o mês anterior e o seguinte.
 - **A grade tem de parecer a planilha da equipe** ("a ideia é só facilitar fazer a escala sem erros"): nada de siglas (C, A3…) na tela.
   `tabelaEscala()` monta, para a tela e para a imagem/impressão: seções (`esc_funcionarios.secao`, ordem em `SECOES`), colunas HORÁRIO e
