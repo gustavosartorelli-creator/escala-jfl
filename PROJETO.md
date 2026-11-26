@@ -26,9 +26,16 @@ Alertas: homem com 7 domingos seguidos; jornada acima de 8h; abaixo do mínimo d
 As regras de semana, 6 dias seguidos, 11h e domingos olham também o mês anterior (`esc_escala` devolve `anterior`).
 O servidor só confere o fluxo e as permissões (e que o resumo enviado tem 0 bloqueios); as regras rodam no app.
 
-Códigos: siglas dos turnos (`esc_turnos`, por prédio) + F folga, FE férias, AF atestado/afastamento, X não se aplica (antes da admissão / após o desligamento).
-Turnos iniciais em todos os prédios: **M** Manhã 07:00–15:20 (sáb/dom 08:00–16:20), **I** Intermediário 11:00–19:20, **T** Tarde 13:40–22:00,
-todos com 1h de intervalo (7h20 de trabalho por dia; 5 dias = 36h40). A escala guarda uma cópia dos turnos (`esc_escalas.turnos`) ao salvar.
+Códigos (a legenda que as equipes já usavam nas planilhas): siglas dos turnos (`esc_turnos`, por prédio) + **X folga**, FC compensa feriado,
+FP preferência de folga, XX folga aniversário, BH banco de horas, FE férias, AT atestado, **F falta**, NA não se aplica (antes da admissão /
+após o desligamento). Todos contam como dia sem trabalho. Feriados (nacionais + SP) ficam em `FERIADOS` no index.html (2026–2027; acrescentar os anos seguintes).
+Turnos têm **versões por data** (`desde`/`ate`): a mesma sigla muda de horário num dia (ex.: 07 = 07:00–16:00 até 15/12/2026 e 07:00–16:24
+a partir de 16/12/2026). O líder cria e edita turnos só do departamento dele; o Gerente Geral, todos.
+Antes de 16/12/2026 passar do limite semanal é só alerta (hora extra); depois, bloqueia.
+Turnos iniciais: **M** 07:00–15:20 (sáb/dom 08:00–16:20), **I** 11:00–19:20, **T** 13:40–22:00 (Recepção e Governança; ainda os horários
+da 6x1, faltam as versões a partir de 16/12, ex.: Recepção 07:00–16:24). Manutenção do JML: 07, 08, 09, 10, 12 (hora de entrada), com as
+versões antiga e nova da planilha do Willian. A escala guarda uma cópia dos turnos (`esc_escalas.turnos`) ao salvar.
+Manutenção do JML: dez/2026 e jan/2027 importados das planilhas do Willian (OneDrive, Área de Trabalho\Escalas\Manutenção) como rascunho.
 
 ## Onde está cada coisa
 - **App:** `index.html` (HTML, CSS e JS num arquivo só). Sem service worker. Imagem para WhatsApp com html2canvas (cdnjs, carregado só ao usar).
@@ -39,10 +46,14 @@ todos com 1h de intervalo (7h20 de trabalho por dia; 5 dias = 36h40). A escala g
 - **Equipe:** `esc_funcionarios`. A Governança foi importada do app de governança em 26/11/2026 (camareiras, ASGs e governantas, sem o
   Gerente Geral e sem a "Cooperativa"; `gov_usuario_id` guarda a origem). Recepção e Manutenção começam vazias. Sexo começa em branco.
 - **Testar localmente:** `powershell -File .claude/serve.ps1 -Port 8791` e abrir http://localhost:8791.
-- **Site:** ainda não publicado.
+- **Site:** https://gustavosartorelli-creator.github.io/escala-jfl/ (GitHub Pages, branch `main`, pasta raiz; publica sozinho ~1 min após o commit).
+- **Repositório:** https://github.com/gustavosartorelli-creator/escala-jfl (**público**, exigência do Pages gratuito; dados protegidos pelo PIN nas RPCs;
+  nunca coloque PINs nos arquivos). Sem Git neste PC: envie pelo GitHub no Chrome (*Add file → Upload files*; pasta `sql/` pela URL `.../upload/main/sql`).
+  O upload do Chrome só aceita arquivos de pastas da sessão: copie para uma pasta temporária dentro da pasta de trabalho, envie e apague. Não envie `.claude/`.
+- Ao mudar o app, suba `VERSAO` no index.html (aparece no rodapé).
 
 ## Pendências
-- Publicar (GitHub Pages, como o Orçamento, ou Vercel).
+- Márcio (JML) em 22→23/01/2027: só 10h36 entre 12–21:24 e 08:00 (bloqueio; o Willian precisa trocar).
 - Cadastrar Recepção e Manutenção (nomes, cargo, sexo) e informar o sexo de todos na Governança.
 - Acessos que faltam: Recepção dos outros prédios (gerente assistente), Manutenção dos outros prédios, Gerente Geral do JML (hoje o Gustavo, admin).
 - Feriados (não tratados ainda) e conferir a convenção do Sindifícios (domingo para homens, banco de horas, ampliação da jornada diária).

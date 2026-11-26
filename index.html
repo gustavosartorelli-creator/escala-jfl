@@ -140,7 +140,13 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 .k2{background:var(--t2)!important;color:var(--t2i)} .k3{background:var(--t3)!important;color:var(--t3i)}
 .kF{background:var(--cf)!important;color:var(--cfi)} .kFE{background:var(--cfe)!important;color:var(--cfei)}
 .kAF{background:var(--caf)!important;color:var(--cafi)} .kX{background:var(--cx)!important;color:var(--cxi)}
-.pc.k0,.pc.k1,.pc.k2,.pc.k3,.pc.kF,.pc.kFE,.pc.kAF,.pc.kX{border-color:transparent}
+.kFA{background:var(--bad-bg)!important;color:var(--bad)}
+.pc.k0,.pc.k1,.pc.k2,.pc.k3,.pc.kF,.pc.kFE,.pc.kAF,.pc.kX,.pc.kFA{border-color:transparent}
+.grade thead th.fer{background:#FCE3CF;color:#8A4B12}
+:root[data-theme="dark"] .grade thead th.fer{background:#4A2E1A;color:#EDB57E}
+.grade tfoot td{position:sticky;bottom:0;background:var(--card-2);font-size:12px;font-weight:600;color:var(--muted);height:26px;z-index:1}
+.grade tfoot .nome{z-index:3;background:var(--card-2);font-weight:600}
+.grade tfoot td.zero{color:var(--bad)}
 .pc.on{border-color:var(--ink)!important}
 .pc.apagar{background:var(--card);color:var(--muted);border:2px dashed var(--line)}
 
@@ -265,7 +271,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v1';
+const VERSAO = 'v2';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -277,12 +283,25 @@ const PAPEIS = { admin: 'Administração (todos os prédios)', aprovador: 'Geren
 const STATUS = { rascunho: 'Rascunho', enviada: 'Aguardando aprovação', aprovada: 'Aprovada', devolvida: 'Devolvida', nova: 'Não iniciada' };
 const PREDIO_LOGO = { jml: 'logos/jml.png', avnu: 'logos/avnu.png', jfl125: 'logos/jfl125.png', vo699: 'logos/vo699.svg', vhouse: 'logos/vhouse.png' };
 
-// Códigos que não são turno
+// Códigos que não são turno: a legenda que as equipes já usam nas planilhas. Todos são dia sem trabalho.
 const OUTROS = {
-  F:  { nome: 'Folga', cls: 'kF' },
+  X:  { nome: 'Folga', cls: 'kF' },
+  FC: { nome: 'Compensa feriado', cls: 'kF' },
+  FP: { nome: 'Preferência de folga', cls: 'kF' },
+  XX: { nome: 'Folga aniversário', cls: 'kF' },
+  BH: { nome: 'Banco de horas', cls: 'kF' },
   FE: { nome: 'Férias', cls: 'kFE' },
-  AF: { nome: 'Atestado / afastamento', cls: 'kAF' },
-  X:  { nome: 'Não se aplica (antes da admissão / após o desligamento)', cls: 'kX' }
+  AT: { nome: 'Atestado', cls: 'kAF' },
+  F:  { nome: 'Falta', cls: 'kFA' },
+  NA: { nome: 'Não se aplica (antes da admissão / após o desligamento)', cls: 'kX' }
+};
+// Feriados (nacionais, estado e cidade de São Paulo). Ponto facultativo não entra.
+const FERIADOS = {
+  '2026-11-20': 'Consciência Negra', '2026-12-25': 'Natal',
+  '2027-01-01': 'Confraternização Universal', '2027-01-25': 'Aniversário de São Paulo', '2027-03-26': 'Sexta-feira Santa',
+  '2027-04-21': 'Tiradentes', '2027-05-01': 'Dia do Trabalho', '2027-05-27': 'Corpus Christi', '2027-07-09': 'Revolução Constitucionalista',
+  '2027-09-07': 'Independência', '2027-10-12': 'Nossa Senhora Aparecida', '2027-11-02': 'Finados', '2027-11-15': 'Proclamação da República',
+  '2027-11-20': 'Consciência Negra', '2027-12-25': 'Natal'
 };
 
 /* ===== Regras da lei (EC 141/2026). Para mudar um limite, mude aqui. =====
@@ -347,7 +366,7 @@ let D = { turnos: [], funcionarios: [], config: {}, escalas: [] };   // dados do
 let E = null;            // { escala, anterior, historico } do departamento/mês
 let GRADE = {};          // cópia editável da grade
 let V = null;            // última validação
-let PINCEL = store.get('pincel', 'F');
+let PINCEL = store.get('pincel', 'X');
 let pinBuf = '';
 
 const papel = () => S.user && S.user.papel;
@@ -457,9 +476,27 @@ function render(){
 }
 
 /* ================= Turnos e códigos ================= */
-const turnosDoDep = (dep, lista = D.turnos) => lista.filter(t => !t.departamentos || t.departamentos.includes(dep));
-const corTurno = (sigla, lista = D.turnos) => { const i = lista.findIndex(t => t.sigla === sigla); return i < 0 ? '' : 'k' + (i % 4); };
-const clsCod = (c, lista) => !c ? '' : OUTROS[c] ? OUTROS[c].cls : corTurno(c, lista);
+// Um turno pode ter versões por data (desde/ate): mesma sigla, horário diferente (ex.: 07–16 até 15/12, 07–16:24 depois)
+const vale = (t, iso) => (!t.desde || t.desde <= iso) && (!t.ate || iso <= t.ate);
+const doDep = (t, dep) => !t.departamentos || t.departamentos.includes(dep);
+const turnoEm = (sigla, iso, lista = D.turnos) => lista.find(t => t.sigla === sigla && vale(t, iso));
+// Versões do departamento que valem em algum dia do período
+const versoesDoDep = (dep, ini, fim, lista = D.turnos) => lista.filter(t => doDep(t, dep) && (!t.desde || t.desde <= fim) && (!t.ate || t.ate >= ini));
+// Uma linha por sigla (para a paleta), na ordem do cadastro; mostra a versão mais nova
+function turnosDoDep(dep, ini = MES, fim = fimDoMes(MES)){
+  const out = [];
+  for (const t of versoesDoDep(dep, ini, fim)) { const i = out.findIndex(x => x.sigla === t.sigla); if (i < 0) out.push(t); else if ((t.desde || '') > (out[i].desde || '')) out[i] = t; }
+  return out;
+}
+const siglasOrdem = () => [...new Set(D.turnos.map(t => t.sigla))];
+const corTurno = sigla => { const i = siglasOrdem().indexOf(sigla); return i < 0 ? '' : 'k' + (i % 4); };
+const clsCod = c => !c ? '' : OUTROS[c] ? OUTROS[c].cls : corTurno(c);
+const periodo = t => t.desde && t.ate ? ` de ${ddmm(t.desde)} a ${ddmm(t.ate)}` : t.desde ? ` a partir de ${ddmm(t.desde)}/${t.desde.slice(2, 4)}` : t.ate ? ` até ${ddmm(t.ate)}/${t.ate.slice(2, 4)}` : '';
+// Texto da legenda de uma sigla no período: "07:00–16:00 até 15/12/26 · 07:00–16:24 a partir de 16/12/26"
+function textoSigla(sigla, dep, ini = MES, fim = fimDoMes(MES)){
+  return versoesDoDep(dep, ini, fim).filter(t => t.sigla === sigla).sort((a, b) => (a.desde || '').localeCompare(b.desde || ''))
+    .map(t => textoTurno(t) + periodo(t)).join(' · ');
+}
 // Horário de um turno num dia (minutos desde 0h do dia; fim pode passar de 24h)
 function jornada(t, iso){
   const fds = [0, 6].includes(dow(iso)) && t.inicio_fds && t.fim_fds;
@@ -498,7 +535,6 @@ function funcionariosDaEscala(){
 function validar(){
   const ini = MES, fim = fimDoMes(MES), antIni = mesAnterior(MES);
   const ant = E.anterior, antTurnos = (ant && ant.turnos && ant.turnos.length) ? ant.turnos : D.turnos;
-  const turnosOk = turnosDoDep(DEP);
   const cel = {}, lista = [];
   const marca = (fid, iso, n, msg) => {
     if (iso < ini || iso > fim) return;
@@ -513,10 +549,10 @@ function validar(){
     else if (iso >= antIni && iso < ini && ant) { c = ((ant.grade || {})[f.id] || {})[iso] || ''; lt = antTurnos; }
     else return { tipo: '?' };
     if (!c) return { tipo: iso >= ini ? 'vazio' : '?' };
-    if (c === 'X') return { tipo: 'x', c };
+    if (c === 'NA') return { tipo: 'x', c };
     if (OUTROS[c]) return { tipo: 'folga', c };
-    const t = lt.find(t => t.sigla === c) || D.turnos.find(t => t.sigla === c);
-    if (!t) return { tipo: 'invalido', c };
+    const t = turnoEm(c, iso, lt) || turnoEm(c, iso);
+    if (!t) return { tipo: D.turnos.some(t => t.sigla === c) ? 'foraVigencia' : 'invalido', c };
     const j = jornada(t, iso), base = Math.round((dUTC(iso) - dUTC(antIni)) / 864e5) * 1440;
     return { tipo: 'trab', c, t, ini: base + j.ini, fim: base + j.fim, trab: j.trab };
   };
@@ -534,7 +570,8 @@ function validar(){
       const x = info(f, d);
       if (x.tipo === 'vazio') vazios++;
       if (x.tipo === 'invalido') { marca(f.id, d, 'b', `Turno "${x.c}" não existe mais`); add('b', f, `${ddmm(d)}: turno "${x.c}" não existe mais`); }
-      if (x.tipo === 'trab' && !turnosOk.some(t => t.sigla === x.c)) { marca(f.id, d, 'b', `Turno ${x.c} não é deste departamento`); add('b', f, `${ddmm(d)}: turno ${x.c} não é usado em ${DEPTOS[DEP]}`); }
+      if (x.tipo === 'foraVigencia') { const msg = `${ddmm(d)}: o turno ${x.c} não vale nesta data (${D.turnos.filter(t => t.sigla === x.c).map(t => textoTurno(t) + periodo(t)).join('; ')})`; marca(f.id, d, 'b', msg); add('b', f, msg); }
+      if (x.tipo === 'trab' && !doDep(x.t, DEP)) { marca(f.id, d, 'b', `Turno ${x.c} não é deste departamento`); add('b', f, `${ddmm(d)}: turno ${x.c} não é usado em ${DEPTOS[DEP]}`); }
       if (x.tipo === 'trab') tot.min += x.trab;
       if (x.tipo === 'folga') { tot.folgas++; if (dow(d) === 0) tot.domFolga++; }
     }
@@ -549,8 +586,10 @@ function validar(){
       const desconhecidos = xs.filter(x => x.tipo === '?' || x.tipo === 'vazio').length;
       const per = `Semana ${ddmm(ds[0])} a ${ddmm(ds[6])}`;
       if (min > r.horas * 60) {
-        const msg = `${per}: ${hm(min)} de trabalho; o limite é ${r.horas}h por semana`;
-        add('b', f, msg); ds.forEach((d, i) => xs[i].tipo === 'trab' && marca(f.id, d, 'b', msg));
+        // Antes de 16/12/2026 (regra antiga) passar do limite vira hora extra: alerta. Na regra nova, bloqueia.
+        const antiga = r.desde < '2026-12-16', n = antiga ? 'a' : 'b';
+        const msg = `${per}: ${hm(min)} de trabalho; o limite é ${r.horas}h por semana${antiga ? ` (${hm(min - r.horas * 60)} de hora extra)` : ''}`;
+        add(n, f, msg); ds.forEach((d, i) => xs[i].tipo === 'trab' && marca(f.id, d, n, msg));
       }
       const precisa = Math.max(0, r.folgas - desconhecidos);
       if (folgas < precisa) {
@@ -597,9 +636,14 @@ function validar(){
   }
 
   // Turnos usados: intervalo e jornada diária
-  const usados = new Set(); funcs.forEach(f => dias.forEach(d => { const c = (GRADE[f.id] || {})[d]; if (c && !OUTROS[c]) usados.add(c); }));
-  for (const t of D.turnos.filter(t => usados.has(t.sigla)))
-    for (const m of checarTurno(t)) add(m.n === 'e' ? 'b' : 'a', null, `Turno ${t.sigla} (${t.nome}): ${m.t}`);
+  const usados = new Set(); funcs.forEach(f => dias.forEach(d => { const c = (GRADE[f.id] || {})[d]; const t = c && !OUTROS[c] && turnoEm(c, d); if (t) usados.add(t); }));
+  const mais8 = [];
+  for (const t of usados)
+    for (const m of checarTurno(t)) {
+      if (m.n === 'w' && /acima de 8h/.test(m.t)) { if (!mais8.includes(t.sigla)) mais8.push(t.sigla); continue; }
+      add(m.n === 'e' ? 'b' : 'a', null, `Turno ${t.sigla} ${textoTurno(t)}${periodo(t)}: ${m.t}`);
+    }
+  if (mais8.length) add('a', null, `Turno${mais8.length > 1 ? 's' : ''} ${mais8.join(', ')} com mais de 8h de trabalho por dia: só vale com acordo ou convenção coletiva (até 16/12/2027 a convenção pode ampliar a jornada diária para fechar as 42h)`);
 
   // Departamento fechado no domingo: domingo só pode ser folga (F, FE, AF ou X)
   if (fechaDomingo(DEP)) for (const f of funcs) for (const d of dias.filter(d => dow(d) === 0)) {
@@ -610,7 +654,7 @@ function validar(){
   // Cobertura mínima por turno e dia
   const cob = cobertura(DEP), diaCob = {};
   for (const [sigla, minimo] of Object.entries(cob)) {
-    if (!(+minimo > 0) || !turnosOk.some(t => t.sigla === sigla)) continue;
+    if (!(+minimo > 0) || !turnosDoDep(DEP).some(t => t.sigla === sigla)) continue;
     const faltas = [];
     for (const d of dias) {
       const n = funcs.filter(f => (GRADE[f.id] || {})[d] === sigla).length;
@@ -630,7 +674,7 @@ function preencherDomingos(){
   if (!fechaDomingo(DEP) || !editavel()) return;
   for (const f of funcionariosDaEscala().filter(f => f.ativo)) {
     const g = GRADE[f.id] = GRADE[f.id] || {};
-    for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) if (dow(d) === 0 && !g[d]) g[d] = 'F';
+    for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) if (dow(d) === 0 && !g[d]) g[d] = 'X';
   }
 }
 
@@ -671,7 +715,7 @@ function renderEscala(){
   const tds = turnosDoDep(DEP);
   if (ed && V.funcs.length) {
     const cods = tds.map(t => [t.sigla, corTurno(t.sigla), t.nome]).concat(Object.entries(OUTROS).map(([k, o]) => [k, o.cls, o.nome.split(' (')[0]]));
-    if (!cods.some(c => c[0] === PINCEL) && PINCEL !== '') PINCEL = 'F';
+    if (!cods.some(c => c[0] === PINCEL) && PINCEL !== '') PINCEL = 'X';
     h += `<div class="paleta" id="paleta"><span class="lbl">Pincel</span>${cods.map(([k, cls, n]) => `<button class="pc ${cls} ${PINCEL === k ? 'on' : ''}" data-k="${k}" title="${esc(n)}">${k}<small>${esc(n)}</small></button>`).join('')}
       <button class="pc apagar ${PINCEL === '' ? 'on' : ''}" data-k="" title="Apagar">Apagar</button>
       <span class="grow"></span>
@@ -687,8 +731,9 @@ function renderEscala(){
   // Grade
   h += `<div class="wrap" id="wrap"><table class="grade" id="grade"><thead><tr><th class="nome">Funcionário</th>`;
   for (const d of V.dias) {
-    const w = dow(d), cov = V.diaCob[d];
-    h += `<th class="${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'dom' : ''} ${w === 1 ? 'seg' : ''} ${cov ? 'cov' : ''}" ${cov ? `title="Abaixo do mínimo: ${esc(cov.join(', '))}"` : ''}>${SEM[w]}<b>${+d.slice(8)}</b></th>`;
+    const w = dow(d), cov = V.diaCob[d], fer = FERIADOS[d];
+    const tit = [fer ? 'Feriado: ' + fer : '', cov ? 'Abaixo do mínimo: ' + cov.join(', ') : ''].filter(Boolean).join('\n');
+    h += `<th class="${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'dom' : ''} ${w === 1 ? 'seg' : ''} ${fer ? 'fer' : ''} ${cov ? 'cov' : ''}" ${tit ? `title="${esc(tit)}"` : ''}>${SEM[w]}<b>${+d.slice(8)}</b></th>`;
   }
   h += `<th>Horas</th><th>Folgas</th></tr></thead><tbody>`;
   for (const f of V.funcs) {
@@ -700,11 +745,18 @@ function renderEscala(){
     }
     h += `<td class="tot num">${hm(t.min)}</td><td class="tot num">${t.folgas}${t.domFolga ? ` <small title="domingos de folga">(${t.domFolga} dom)</small>` : ''}</td></tr>`;
   }
-  h += `</tbody></table></div>`;
+  // Rodapé: quantos trabalham em cada dia (e em cada turno, no título)
+  h += `</tbody><tfoot><tr><td class="nome">Trabalhando</td>${V.dias.map(d => {
+    const cs = V.funcs.map(f => (GRADE[f.id] || {})[d]).filter(c => c && !OUTROS[c]);
+    const por = {}; cs.forEach(c => por[c] = (por[c] || 0) + 1);
+    return `<td class="${cs.length ? '' : 'zero'}" title="${esc(Object.entries(por).map(([k, n]) => `${k}: ${n}`).join(', ') || 'ninguém')}">${cs.length}</td>`;
+  }).join('')}<td></td><td></td></tr></tfoot></table></div>`;
 
-  // Legenda
-  h += `<div class="legenda">${tds.map(t => { const j = jornada(t, '2026-12-07'); return `<span><b class="${corTurno(t.sigla)}">${t.sigla}</b>${esc(t.nome)} ${textoTurno(t)} · ${hm(j.trab)} + ${t.intervalo_min} min de intervalo</span>`; }).join('')}
-    ${Object.entries(OUTROS).map(([k, o]) => `<span><b class="${o.cls}">${k}</b>${esc(o.nome)}</span>`).join('')}</div>`;
+  // Legenda (cada sigla com as versões do mês) e feriados do mês
+  const fers = V.dias.filter(d => FERIADOS[d]);
+  h += `<div class="legenda">${tds.map(t => { const j = jornada(t, t.desde || MES); return `<span><b class="${corTurno(t.sigla)}">${t.sigla}</b>${esc(t.nome)} ${textoSigla(t.sigla, DEP)} · ${hm(j.trab)} + ${t.intervalo_min} min de intervalo</span>`; }).join('')}
+    ${Object.entries(OUTROS).map(([k, o]) => `<span><b class="${o.cls}">${k}</b>${esc(o.nome)}</span>`).join('')}
+    ${fers.length ? `<span><b style="background:#FCE3CF;color:#8A4B12">dia</b>Feriado: ${fers.map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}</span>` : ''}</div>`;
   const r = regraEm(fimDoMes(MES)), r0 = regraEm(MES);
   h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de 7 a 13/12; depois ${esc(r.nome)}`}. Semanas de segunda a domingo (linha mais grossa = segunda-feira).</p>`;
 
@@ -835,7 +887,7 @@ function montarExport(){
     <div class="sub">${nomeMes(MES)} · ${st === 'aprovada' ? `Aprovada por ${esc(E.escala.aprovada_por)} em ${quando(E.escala.aprovada_em)}` : `<span class="marca">${st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA'}</span>`}</div>
     <table><thead><tr><th></th>${dias.map(d => `<th class="${[0, 6].includes(dow(d)) ? 'fds' : ''}">${SEM[dow(d)]}<br>${+d.slice(8)}</th>`).join('')}</tr></thead><tbody>`;
   for (const f of funcs) h += `<tr><td class="n">${esc(f.nome)}</td>${dias.map(d => { const c = (GRADE[f.id] || {})[d] || ''; return `<td class="${clsCod(c)} ${[0, 6].includes(dow(d)) ? 'fds' : ''}" style="font-weight:700">${c}</td>`; }).join('')}</tr>`;
-  h += `</tbody></table><div style="margin-top:10px;font-size:12px">${turnosDoDep(DEP).map(t => `<b>${t.sigla}</b> ${esc(t.nome)} ${textoTurno(t)}`).join(' · ')} · ${Object.entries(OUTROS).filter(([k]) => k !== 'X').map(([k, o]) => `<b>${k}</b> ${o.nome}`).join(' · ')}</div>
+  h += `</tbody></table><div style="margin-top:10px;font-size:12px">${turnosDoDep(DEP).map(t => `<b>${t.sigla}</b> ${esc(t.nome)} ${textoSigla(t.sigla, DEP)}`).join(' · ')}<br>${Object.entries(OUTROS).filter(([k]) => k !== 'NA').map(([k, o]) => `<b>${k}</b> ${o.nome}`).join(' · ')}${dias.some(d => FERIADOS[d]) ? `<br>Feriados: ${dias.filter(d => FERIADOS[d]).map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}` : ''}</div>
     <div class="ass"><div>Montada por ${esc((E.escala && (E.escala.enviada_por || E.escala.salvo_por)) || '')}</div><div>Aprovada por ${esc((E.escala && E.escala.aprovada_por) || '')}</div></div>`;
   $('#exportar').innerHTML = h;
 }
@@ -903,12 +955,18 @@ async function recarregarDados(){ D = await rpc('esc_dados', { p_pin: S.pin, p_p
 
 /* ================= Aba Turnos ================= */
 function renderTurnos(){
-  let h = `<p class="hint">${podeTurnos() ? 'Toque num turno para editar.' : 'Só o Gerente Geral altera os turnos.'} Mudar um turno não altera escalas já aprovadas, que guardam os horários do dia em que foram salvas.</p><div class="sec-t">Turnos <span class="grow"></span>${podeTurnos() ? '<button class="btn sec" id="bNovoT">+ Turno</button>' : ''}</div><div class="tbl">`;
-  h += D.turnos.map(t => { const j = jornada(t, '2026-12-07'), erros = checarTurno(t);
-    return `<div class="li ${podeTurnos() ? '' : 'ro'}" data-t="${t.id}"><b class="pc ${corTurno(t.sigla)}" style="pointer-events:none">${esc(t.sigla)}</b>
-      <div class="t">${esc(t.nome)} · ${textoTurno(t)}<small>${hm(j.trab)} de trabalho + ${t.intervalo_min} min de intervalo · ${(t.departamentos || []).map(d => DEPTOS[d]).join(', ')}</small></div>
-      ${erros.some(x => x.n === 'e') ? '<span class="tagx bad">Fora da lei</span>' : erros.length ? '<span class="tagx">Atenção</span>' : ''}</div>`; }).join('') || '<div class="empty">Nenhum turno.</div>';
-  h += '</div>';
+  const pode = t => podeTurnos() || (papel() === 'montador' && (t.departamentos || []).length === 1 && t.departamentos[0] === S.user.departamento);
+  const novo = podeTurnos() || papel() === 'montador';
+  let h = `<p class="hint">O Gerente Geral altera qualquer turno; o líder altera os turnos só do departamento dele. Um turno pode ter <b>versões por data</b> (mesma sigla, horário que muda a partir de um dia, como na mudança de 16/12/2026): crie outra versão com "Vale a partir de" e feche a antiga com "Vale até". Escalas já salvas guardam os horários do dia em que foram salvas.</p>`;
+  for (const dep of deptosVisiveis()) {
+    const ts = D.turnos.filter(t => doDep(t, dep)).sort((a, b) => (a.ordem - b.ordem) || a.sigla.localeCompare(b.sigla) || (a.desde || '').localeCompare(b.desde || ''));
+    h += `<div class="sec-t">Turnos · ${DEPTOS[dep]} <span class="grow"></span>${novo && podeMontar(dep) ? `<button class="btn sec" data-novot="${dep}">+ Turno</button>` : ''}</div><div class="tbl">`;
+    h += ts.map(t => { const j = jornada(t, t.desde || '2026-12-07'), erros = checarTurno(t), venc = t.ate && t.ate < hojeISO();
+      return `<div class="li ${pode(t) ? '' : 'ro'} ${venc ? 'off' : ''}" data-t="${t.id}"><b class="pc ${corTurno(t.sigla)}" style="pointer-events:none">${esc(t.sigla)}</b>
+        <div class="t">${esc(t.nome)} · ${textoTurno(t)}${periodo(t)}<small>${hm(j.trab)} de trabalho + ${t.intervalo_min} min de intervalo · ${(t.departamentos || []).map(d => DEPTOS[d]).join(', ')}</small></div>
+        ${erros.some(x => x.n === 'e') ? '<span class="tagx bad">Fora da lei</span>' : erros.length ? '<span class="tagx" title="Acima de 8h por dia: precisa de acordo ou convenção">+8h</span>' : ''}</div>`; }).join('') || '<div class="empty">Nenhum turno.</div>';
+    h += '</div>';
+  }
   // Cobertura mínima
   h += `<div class="sec-t">Mínimo de pessoas por turno (alerta na escala)</div><div class="tbl">`;
   for (const dep of deptosVisiveis()) {
@@ -918,7 +976,7 @@ function renderTurnos(){
   h += '</div>';
   $('#conteudo').innerHTML = h;
   $('#conteudo').onclick = e => {
-    if (e.target.id === 'bNovoT') return editarTurno({ intervalo_min: 60, departamentos: Object.keys(DEPTOS) });
+    const nt = e.target.closest('[data-novot]'); if (nt) return editarTurno({ intervalo_min: 60, departamentos: [nt.dataset.novot] });
     const li = e.target.closest('.li[data-t]'); if (!li || li.classList.contains('ro')) return;
     editarTurno(D.turnos.find(t => String(t.id) === li.dataset.t));
   };
@@ -943,18 +1001,25 @@ function editarTurno(t){
     <label class="fld">Intervalo (min)<input type="number" id="tIv" min="0" max="180" value="${t.intervalo_min ?? 60}"></label></div>
     <div class="grid2"><label class="fld">Entrada sáb/dom (se for diferente)<input type="time" id="tIf" value="${hhmm(t.inicio_fds)}"></label>
     <label class="fld">Saída sáb/dom<input type="time" id="tFf" value="${hhmm(t.fim_fds)}"></label></div>
-    <div class="fld">Departamentos</div>${Object.entries(DEPTOS).map(([k, n]) => `<label class="chk"><input type="checkbox" value="${k}" class="tD" ${(t.departamentos || []).includes(k) ? 'checked' : ''}> ${n}</label>`).join('')}
+    <div class="grid2"><label class="fld">Vale a partir de (opcional)<input type="date" id="tDe" value="${t.desde || ''}"></label>
+    <label class="fld">Vale até (opcional)<input type="date" id="tAte" value="${t.ate || ''}"></label></div>
+    <div class="fld">Departamentos</div>${Object.entries(DEPTOS).filter(([k]) => podeTurnos() || k === S.user.departamento).map(([k, n]) => `<label class="chk"><input type="checkbox" value="${k}" class="tD" ${(t.departamentos || []).includes(k) ? 'checked' : ''} ${podeTurnos() ? '' : 'disabled'}> ${n}</label>`).join('')}
+    ${t.id ? '<div class="acts" style="justify-content:flex-start;margin-top:12px"><button class="btn link" id="nv">Criar nova versão a partir de uma data</button></div>' : ''}
     <div class="msgs" id="tMsgs"></div>
     <div class="acts">${t.id ? '<button class="btn danger" id="del">Desativar</button><span class="grow"></span>' : ''}<button class="btn" id="ok">Salvar</button></div>`);
   const ler = () => ({ id: t.id || null, sigla: ov.querySelector('#tS').value.trim().toUpperCase(), nome: ov.querySelector('#tN').value.trim(),
     inicio: ov.querySelector('#tI').value, fim: ov.querySelector('#tF').value, intervalo_min: +ov.querySelector('#tIv').value,
     inicio_fds: ov.querySelector('#tIf').value, fim_fds: ov.querySelector('#tFf').value,
+    desde: ov.querySelector('#tDe').value, ate: ov.querySelector('#tAte').value,
     departamentos: [...ov.querySelectorAll('.tD:checked')].map(c => c.value), ativo: true });
   const checar = () => {
     const p = ler(), out = [];
     if (!/^[A-Z0-9]{1,3}$/.test(p.sigla)) out.push({ n: 'e', t: 'Sigla: 1 a 3 letras ou números' });
     if (OUTROS[p.sigla]) out.push({ n: 'e', t: `A sigla ${p.sigla} é reservada (${OUTROS[p.sigla].nome})` });
-    if (D.turnos.some(x => x.sigla === p.sigla && x.id !== t.id)) out.push({ n: 'e', t: 'Já existe um turno com essa sigla' });
+    if (p.desde && p.ate && p.ate < p.desde) out.push({ n: 'e', t: '"Vale até" é antes de "Vale a partir de"' });
+    // Mesma sigla pode ter várias versões, desde que os períodos não se cruzem
+    const cruza = D.turnos.find(x => x.sigla === p.sigla && x.id !== t.id && (!x.desde || !p.ate || x.desde <= p.ate) && (!x.ate || !p.desde || p.desde <= x.ate));
+    if (cruza) out.push({ n: 'e', t: `Já existe o turno ${cruza.sigla} ${textoTurno(cruza)}${periodo(cruza) || ' sem data'}; ajuste as datas para os períodos não se cruzarem` });
     if (!p.nome) out.push({ n: 'e', t: 'Informe o nome' });
     if (!p.inicio || !p.fim) out.push({ n: 'e', t: 'Informe entrada e saída' });
     if (!!p.inicio_fds !== !!p.fim_fds) out.push({ n: 'e', t: 'Sábado/domingo: informe entrada e saída, ou deixe os dois em branco' });
@@ -964,6 +1029,19 @@ function editarTurno(t){
     return out;
   };
   ov.querySelectorAll('input').forEach(i => i.oninput = checar); checar();
+  const nv = ov.querySelector('#nv');
+  if (nv) nv.onclick = () => {
+    const d = prompt('A nova versão vale a partir de qual dia? (dd/mm/aaaa)', '16/12/2026'); if (!d) return;
+    const m = d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (!m) { toast('Data inválida', true); return; }
+    const iso = `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    if (t.desde && iso <= t.desde) { toast('A data tem de ser depois do início desta versão', true); return; }
+    ov.remove();
+    // fecha esta versão na véspera e abre a nova com os mesmos dados, para o líder ajustar o horário
+    rpc('esc_turno_salvar', { p_pin: S.pin, p_predio: PREDIO, p: { ...t, inicio: hhmm(t.inicio), fim: hhmm(t.fim), inicio_fds: hhmm(t.inicio_fds), fim_fds: hhmm(t.fim_fds), ate: addDias(iso, -1), desde: t.desde || '' } })
+      .then(() => recarregarDados())
+      .then(() => editarTurno({ ...t, id: null, desde: iso, ate: t.ate && t.ate >= iso ? t.ate : '' }))
+      .catch(e => toast(e.message, true));
+  };
   ov.querySelector('#ok').onclick = async () => {
     if (checar().some(m => m.n === 'e')) { toast('Corrija os erros do turno', true); return; }
     try { await rpc('esc_turno_salvar', { p_pin: S.pin, p_predio: PREDIO, p: ler() }); ov.remove(); toast('Turno salvo'); await recarregarDados(); }
@@ -982,15 +1060,15 @@ function renderRegras(){
   const R = (t, tipo, txt, base) => `<div class="regra"><b>${t}<span class="tp ${tipo}">${tipo === 'b' ? 'Bloqueia o envio' : 'Alerta'}</span></b>${txt}<br><small>${base}</small></div>`;
   $('#conteudo').innerHTML = `<p class="hint">O app confere a escala enquanto ela é montada. <b>Bloqueio</b>: a escala não pode ser enviada para aprovação até ser corrigida. <b>Alerta</b>: pode enviar, mas o Gerente Geral vê o aviso.</p>
   <div class="regras">
-    ${R('Carga semanal', 'b', 'Até 15/12/2026: 44h. De 16/12/2026: <b>42h</b>. De 16/12/2027: <b>40h</b>. A semana vai de segunda a domingo; a semana de 14 a 20/12/2026 já segue as 42h.', 'Emenda Constitucional 141/2026')}
-    ${R('Duas folgas por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 dias sem trabalho em cada semana (podem não ser seguidos). Antes disso, 1. Férias, atestado e "não se aplica" contam como dia sem trabalho.', 'Emenda Constitucional 141/2026')}
+    ${R('Carga semanal', 'b', 'Até 15/12/2026: 44h (acima disso aparece só alerta de hora extra). De 16/12/2026: <b>42h</b>, bloqueia. De 16/12/2027: <b>40h</b>. A semana vai de segunda a domingo; a semana de 14 a 20/12/2026 já segue as 42h. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
+    ${R('Duas folgas por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 dias sem trabalho em cada semana (podem não ser seguidos). Antes disso, 1. Todos os códigos que não são turno (X, FC, FP, XX, BH, FE, AT, F, NA) contam como dia sem trabalho.', 'Emenda Constitucional 141/2026')}
     ${R('No máximo 6 dias seguidos', 'b', 'A folga tem de vir até o 7º dia; trabalhar 7 dias seguidos não é permitido, mesmo com 2 folgas na semana (ex.: folga no início de uma semana e no fim da outra).', 'CLT art. 67; OJ 410 do TST')}
     ${R('11h de descanso entre jornadas', 'b', 'Entre a saída de um dia e a entrada do dia seguinte. Ex.: Tarde (sai 22:00) seguida de Manhã (entra 07:00) dá só 9h: bloqueado.', 'CLT art. 66')}
     ${R('Mulher: domingo de folga a cada 15 dias', 'b', 'Não pode trabalhar dois domingos seguidos.', 'CLT art. 386')}
     ${R('Homem: domingo de folga ao menos a cada 7 semanas', 'a', 'Aviso quando chega a 7 domingos seguidos de trabalho. Confira a convenção do Sindifícios.', 'Lei 605/1949 e portaria do MTE sobre repouso em domingo')}
     ${R('Intervalo para almoço', 'b', 'Jornada acima de 6h: mínimo 1h (máximo 2h). De 4h a 6h: 15 min. Conferido no cadastro do turno.', 'CLT art. 71')}
     ${R('Jornada diária', 'b', 'Máximo 10h por dia (8h + 2h extras). Acima de 8h aparece alerta: só vale com acordo ou convenção coletiva.', 'CLT art. 59; EC 141/2026')}
-    ${R('Todos os dias marcados', 'b', 'Cada pessoa precisa ter um código em todos os dias do mês (turno, F, FE, AF ou X).', 'Regra do app')}
+    ${R('Todos os dias marcados', 'b', 'Cada pessoa precisa ter um código em todos os dias do mês: um turno ou X folga, FC compensa feriado, FP preferência de folga, XX folga aniversário, BH banco de horas, FE férias, AT atestado, F falta, NA não se aplica (antes da admissão ou depois do desligamento). Feriados aparecem destacados no topo da grade.', 'Regra do app')}
     ${R('Sexo informado', 'b', 'Necessário para aplicar a regra do domingo.', 'Regra do app')}
     ${R('Departamento fechado no domingo', 'b', 'Governança e Manutenção não funcionam aos domingos: o domingo já vem marcado como folga e não aceita turno. Muda na aba Turnos.', 'Regra da operação')}
     ${R('Mínimo de pessoas por turno', 'a', 'Configurado na aba Turnos, por departamento (ex.: Recepção com ao menos 1 em cada turno).', 'Regra da operação')}
