@@ -83,6 +83,11 @@ main{max-width:1400px;margin:0 auto;padding:20px}
 .tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
 .tabs button{background:none;padding:10px 14px;font-size:14px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;border-radius:0;white-space:nowrap}
 .tabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
+.mesnav{display:flex;align-items:center;justify-content:center;gap:18px;margin:0 0 14px}
+.mesnav h2{margin:0;font:700 22px/1.2 var(--sans);letter-spacing:.08em;min-width:220px;text-align:center}
+.mesnav .seta{width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--brand);font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 0 3px}
+.mesnav .seta:hover{border-color:var(--brand)}
+@media(max-width:560px){ .mesnav{gap:10px} .mesnav h2{font-size:18px;min-width:0} }
 .deps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .dep{background:var(--card);border:1px solid var(--line);padding:8px 14px;text-align:left;color:var(--ink);min-width:150px}
 .dep b{display:block;font-size:14px}
@@ -271,7 +276,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v2';
+const VERSAO = 'v3';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -305,8 +310,9 @@ const FERIADOS = {
 };
 
 /* ===== Regras da lei (EC 141/2026). Para mudar um limite, mude aqui. =====
-   A semana vai de segunda a domingo; vale a regra em vigor no domingo que fecha a semana
-   (a semana de 14 a 20/12/2026 já segue a regra nova). */
+   A semana vai de segunda a domingo; vale a regra em vigor na segunda-feira que abre a semana.
+   A semana em que a lei muda (14 a 20/12/2026, a mudança é na quarta) é de transição: segue a regra antiga, com alerta;
+   a regra nova começa na primeira semana cheia (21/12/2026). Decisão do Gustavo em 26/11/2026. */
 const LEI = [
   { desde: '0000-01-01', horas: 44, folgas: 1, nome: 'CLT até 15/12/2026 (44h, 6x1)' },
   { desde: '2026-12-16', horas: 42, folgas: 2, nome: 'EC 141/2026 (42h, 5x2)' },
@@ -315,7 +321,8 @@ const LEI = [
 const REGRA = {
   descansoMin: 11 * 60,     // entre jornadas (CLT art. 66)
   diasSeguidosMax: 6,       // folga no máximo após o 6º dia seguido (OJ 410 do TST)
-  domingoMulherSemanas: 2,  // mulher: domingo de folga a cada 15 dias (CLT art. 386)
+  domingoMulherSemanas: 2,  // mulher: domingo de folga a cada 15 dias (CLT art. 386) — alerta
+  domingoDesde: '2026-12-16', // os domingos só contam a partir daqui (decisão do Gustavo em 26/11/2026)
   domingoHomemSemanas: 7,   // homem: ao menos 1 domingo de folga a cada 7 semanas (alerta)
   jornadaMax: 10 * 60,      // 8h + 2h extras (CLT art. 59)
   jornadaNormal: 8 * 60
@@ -457,6 +464,16 @@ async function carregar(){
   GRADE = JSON.parse(JSON.stringify((E.escala && E.escala.grade) || {}));
   render();
 }
+// Setas do mês: anda um mês e, se ele não estiver na lista do topo, acrescenta
+async function irMes(delta){
+  const d = dUTC(MES); d.setUTCMonth(d.getUTCMonth() + delta); const m = isoDe(d);
+  const sel = $('#selMes');
+  if (![...sel.options].some(o => o.value === m)) {
+    const op = new Option(nomeMes(m), m), depois = [...sel.options].find(o => o.value > m);
+    sel.add(op, depois || null);
+  }
+  sel.value = m; await sel.onchange();
+}
 async function trocarDep(dep){ await salvarAgora(); DEP = dep; store.set('dep', dep); return carregarEscala(); }
 async function carregarEscala(){
   try {
@@ -563,7 +580,7 @@ function validar(){
 
   for (const f of funcs) {
     const tot = { min: 0, folgas: 0, domFolga: 0 }; totais[f.id] = tot;
-    if (!f.sexo) add('b', f, 'Informe se é mulher ou homem (aba Equipe): a regra do domingo depende disso');
+    if (!f.sexo && !f.sem_regras) add('b', f, 'Informe se é mulher ou homem (aba Equipe): a regra do domingo depende disso');
     // Dias vazios e códigos inválidos
     let vazios = 0;
     for (const d of dias) {
@@ -576,10 +593,11 @@ function validar(){
       if (x.tipo === 'folga') { tot.folgas++; if (dow(d) === 0) tot.domFolga++; }
     }
     if (vazios) add('b', f, `${vazios} dia${vazios > 1 ? 's' : ''} sem marcação`);
+    if (f.sem_regras) continue; // cooperada / não CLT: só confere se todos os dias estão marcados
 
     // Semanas (segunda a domingo) que tocam o mês: horas e folgas
     for (let s = segundaDe(ini); s <= fim; s = addDias(s, 7)) {
-      const ds = [0,1,2,3,4,5,6].map(i => addDias(s, i)), r = regraEm(ds[6]);
+      const ds = [0,1,2,3,4,5,6].map(i => addDias(s, i)), r = regraEm(ds[0]);
       const xs = ds.map(d => info(f, d));
       const min = xs.reduce((a, x) => a + (x.tipo === 'trab' ? x.trab : 0), 0);
       const folgas = xs.filter(x => x.tipo === 'folga' || x.tipo === 'x').length;
@@ -620,19 +638,25 @@ function validar(){
     }
 
     // Domingos
-    for (const d of dias.filter(d => dow(d) === 0)) {
+    for (const d of dias.filter(d => dow(d) === 0 && d >= REGRA.domingoDesde)) {
       const x = info(f, d);
       if (x.tipo !== 'trab') continue;
       let n = 1, p = addDias(d, -7);
-      while (n < 60) { const y = info(f, p); if (y.tipo !== 'trab') break; n++; p = addDias(p, -7); }
+      while (n < 60 && p >= REGRA.domingoDesde) { const y = info(f, p); if (y.tipo !== 'trab') break; n++; p = addDias(p, -7); }
       if (f.sexo === 'F' && n >= REGRA.domingoMulherSemanas) {
         const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; mulher precisa de folga no domingo a cada 15 dias (CLT art. 386)`;
-        marca(f.id, d, 'b', msg); add('b', f, msg);
+        marca(f.id, d, 'a', msg); add('a', f, msg);
       } else if (f.sexo === 'M' && n >= REGRA.domingoHomemSemanas) {
         const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; dê ao menos 1 domingo de folga a cada 7 semanas`;
         marca(f.id, d, 'a', msg); add('a', f, msg);
       }
     }
+  }
+
+  // Semana de transição (a lei muda no meio da semana): segue a regra antiga, com um lembrete
+  for (let s = segundaDe(ini); s <= fim; s = addDias(s, 7)) {
+    const dom = addDias(s, 6), nova = LEI.find(r => r.desde > s && r.desde <= dom);
+    if (nova && funcs.length) add('a', null, `Semana de ${ddmm(s)} a ${ddmm(dom)} é de transição: a lei muda em ${ddmm(nova.desde)}, no meio da semana. Nela ainda vale a regra antiga (${regraEm(s).horas}h e ${regraEm(s).folgas} folga${regraEm(s).folgas > 1 ? 's' : ''}; o que passar é hora extra). ${nova.horas}h e ${nova.folgas} folgas por semana a partir de ${ddmm(addDias(s, 7))}.`);
   }
 
   // Turnos usados: intervalo e jornada diária
@@ -691,6 +715,10 @@ function renderEscala(){
   preencherDomingos();
   V = validar();
   let h = '';
+  // Mês em destaque, com setas para o anterior e o seguinte
+  h += `<div class="mesnav"><button class="seta" id="mPrev" aria-label="Mês anterior" title="Mês anterior">‹</button>
+    <h2>${esc(nomeMes(MES).toUpperCase())}</h2>
+    <button class="seta" id="mNext" aria-label="Próximo mês" title="Próximo mês">›</button></div>`;
   // Departamentos com a situação do mês
   h += `<div class="deps">${deps.map(d => { const s = statusDe(d); return `<button class="dep ${d === DEP ? 'on' : ''}" data-dep="${d}"><b>${DEPTOS[d]}</b><span class="pill ${s}">${STATUS[s]}</span></button>`; }).join('')}</div>`;
 
@@ -738,7 +766,7 @@ function renderEscala(){
   h += `<th>Horas</th><th>Folgas</th></tr></thead><tbody>`;
   for (const f of V.funcs) {
     const t = V.totais[f.id];
-    h += `<tr><th class="nome">${esc(f.nome)}${f.ativo ? '' : ' <span class="tagx">inativo</span>'}<small><span class="sx ${f.sexo ? '' : 'falta'}">${f.sexo === 'F' ? 'Mulher' : f.sexo === 'M' ? 'Homem' : 'Sexo?'}</span> · ${esc(f.cargo || '')}</small></th>`;
+    h += `<tr><th class="nome">${esc(f.nome)}${f.ativo ? '' : ' <span class="tagx">inativo</span>'}<small>${f.sem_regras ? '<span class="sx">Não CLT</span>' : `<span class="sx ${f.sexo ? '' : 'falta'}">${f.sexo === 'F' ? 'Mulher' : f.sexo === 'M' ? 'Homem' : 'Sexo?'}</span>`} · ${esc(f.cargo || '')}</small></th>`;
     for (const d of V.dias) {
       const c = (GRADE[f.id] || {})[d] || '', w = dow(d), m = V.cel[f.id + '|' + d];
       h += `<td class="c ${ed ? '' : 'ro'} ${clsCod(c)} ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${c ? '' : 'vazio'} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (m ? '\n' + m.msgs.join('\n') : ''))}">${c}</td>`;
@@ -757,8 +785,8 @@ function renderEscala(){
   h += `<div class="legenda">${tds.map(t => { const j = jornada(t, t.desde || MES); return `<span><b class="${corTurno(t.sigla)}">${t.sigla}</b>${esc(t.nome)} ${textoSigla(t.sigla, DEP)} · ${hm(j.trab)} + ${t.intervalo_min} min de intervalo</span>`; }).join('')}
     ${Object.entries(OUTROS).map(([k, o]) => `<span><b class="${o.cls}">${k}</b>${esc(o.nome)}</span>`).join('')}
     ${fers.length ? `<span><b style="background:#FCE3CF;color:#8A4B12">dia</b>Feriado: ${fers.map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}</span>` : ''}</div>`;
-  const r = regraEm(fimDoMes(MES)), r0 = regraEm(MES);
-  h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de 7 a 13/12; depois ${esc(r.nome)}`}. Semanas de segunda a domingo (linha mais grossa = segunda-feira).</p>`;
+  const r = regraEm(segundaDe(fimDoMes(MES))), r0 = regraEm(MES);
+  h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de transição; a partir de ${ddmm(segundaDe(addDias(r.desde, 6)))} ${esc(r.nome)}`}. Semanas de segunda a domingo (linha mais grossa = segunda-feira).</p>`;
 
   // Problemas
   const bl = V.lista.filter(x => x.n === 'b'), al = V.lista.filter(x => x.n === 'a');
@@ -781,6 +809,7 @@ function renderEscala(){
 function ligarEscala(){
   document.querySelectorAll('.dep').forEach(b => b.onclick = () => b.dataset.dep !== DEP && trocarDep(b.dataset.dep));
   const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
+  on('mPrev', () => irMes(-1)); on('mNext', () => irMes(1));
   on('bEnviar', enviar); on('bAprovar', () => acao('aprovar')); on('bDevolver', devolver); on('bReabrir', reabrir);
   on('bImprimir', imprimir); on('bImagem', imagem); on('bRepetir', repetirSemana); on('bLimpar', limpar);
   const pal = $('#paleta');
@@ -883,8 +912,8 @@ async function acao(a, motivo, resumo){
 function montarExport(){
   const st = E.escala ? E.escala.status : 'nova', tds = D.turnos;
   const funcs = funcionariosDaEscala(), dias = []; for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) dias.push(d);
-  let h = `<h2>Escala ${esc(DEPTOS[DEP])} · ${esc(nomePredio())}</h2>
-    <div class="sub">${nomeMes(MES)} · ${st === 'aprovada' ? `Aprovada por ${esc(E.escala.aprovada_por)} em ${quando(E.escala.aprovada_em)}` : `<span class="marca">${st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA'}</span>`}</div>
+  let h = `<h2 style="font:700 26px var(--sans);letter-spacing:.08em;margin:0 0 4px">${esc(nomeMes(MES).toUpperCase())}</h2><h2>Escala ${esc(DEPTOS[DEP])} · ${esc(nomePredio())}</h2>
+    <div class="sub">${st === 'aprovada' ? `Aprovada por ${esc(E.escala.aprovada_por)} em ${quando(E.escala.aprovada_em)}` : `<span class="marca">${st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA'}</span>`}</div>
     <table><thead><tr><th></th>${dias.map(d => `<th class="${[0, 6].includes(dow(d)) ? 'fds' : ''}">${SEM[dow(d)]}<br>${+d.slice(8)}</th>`).join('')}</tr></thead><tbody>`;
   for (const f of funcs) h += `<tr><td class="n">${esc(f.nome)}</td>${dias.map(d => { const c = (GRADE[f.id] || {})[d] || ''; return `<td class="${clsCod(c)} ${[0, 6].includes(dow(d)) ? 'fds' : ''}" style="font-weight:700">${c}</td>`; }).join('')}</tr>`;
   h += `</tbody></table><div style="margin-top:10px;font-size:12px">${turnosDoDep(DEP).map(t => `<b>${t.sigla}</b> ${esc(t.nome)} ${textoSigla(t.sigla, DEP)}`).join(' · ')}<br>${Object.entries(OUTROS).filter(([k]) => k !== 'NA').map(([k, o]) => `<b>${k}</b> ${o.nome}`).join(' · ')}${dias.some(d => FERIADOS[d]) ? `<br>Feriados: ${dias.filter(d => FERIADOS[d]).map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}` : ''}</div>
@@ -923,7 +952,7 @@ function renderEquipe(){
     h += `<div class="sec-t">${DEPTOS[dep]} <span class="grow">${fs.filter(f => f.ativo).length} ativos</span>${podeMontar(dep) ? `<button class="btn sec" data-novo="${dep}">+ Pessoa</button>` : ''}</div>`;
     h += fs.length ? `<div class="tbl">${fs.map(f => `<div class="li ${f.ativo ? '' : 'off'} ${podeMontar(dep) ? '' : 'ro'}" data-id="${f.id}">
         <div class="t">${esc(f.nome)}<small>${esc(f.cargo || '')}${f.turno_padrao ? ' · turno ' + esc(f.turno_padrao) : ''}${f.ativo ? '' : ' · inativo'}</small></div>
-        ${f.sexo ? `<span class="tagx">${f.sexo === 'F' ? 'Mulher' : 'Homem'}</span>` : '<span class="tagx bad">Sexo?</span>'}</div>`).join('')}</div>`
+        ${f.sem_regras ? '<span class="tagx">Não CLT</span>' : f.sexo ? `<span class="tagx">${f.sexo === 'F' ? 'Mulher' : 'Homem'}</span>` : '<span class="tagx bad">Sexo?</span>'}</div>`).join('')}</div>`
       : `<div class="empty">Ninguém cadastrado.</div>`;
   }
   $('#conteudo').innerHTML = h;
@@ -941,11 +970,13 @@ function editarFunc(f){
     <label class="fld">Sexo<select id="fSexo"><option value="">—</option><option value="F" ${f.sexo === 'F' ? 'selected' : ''}>Mulher</option><option value="M" ${f.sexo === 'M' ? 'selected' : ''}>Homem</option></select></label></div>
     <div class="grid2"><label class="fld">Departamento<select id="fDep">${deps.map(d => `<option value="${d}" ${d === f.departamento ? 'selected' : ''}>${DEPTOS[d]}</option>`).join('')}</select></label>
     <label class="fld">Turno mais comum<select id="fTurno"><option value="">—</option>${D.turnos.map(t => `<option value="${t.sigla}" ${t.sigla === f.turno_padrao ? 'selected' : ''}>${t.sigla} · ${esc(t.nome)}</option>`).join('')}</select></label></div>
+    <label class="chk"><input type="checkbox" id="fSemRegras" ${f.sem_regras ? 'checked' : ''}> Cooperada / não CLT (fica fora das regras de horas, folgas e domingos)</label>
     ${f.id ? `<label class="chk"><input type="checkbox" id="fAtivo" ${f.ativo ? 'checked' : ''}> Ativo (desmarque quando sair da equipe)</label>` : ''}
     <div class="acts"><button class="btn" id="ok">Salvar</button></div>`);
   ov.querySelector('#ok').onclick = async () => {
     const p = { id: f.id || null, nome: ov.querySelector('#fNome').value, cargo: ov.querySelector('#fCargo').value, sexo: ov.querySelector('#fSexo').value,
-      departamento: ov.querySelector('#fDep').value, turno_padrao: ov.querySelector('#fTurno').value, ativo: f.id ? ov.querySelector('#fAtivo').checked : true };
+      departamento: ov.querySelector('#fDep').value, turno_padrao: ov.querySelector('#fTurno').value, ativo: f.id ? ov.querySelector('#fAtivo').checked : true,
+      sem_regras: ov.querySelector('#fSemRegras').checked };
     if (!p.nome.trim()) { toast('Informe o nome', true); return; }
     try { await rpc('esc_funcionario_salvar', { p_pin: S.pin, p_predio: PREDIO, p }); ov.remove(); toast('Salvo'); await recarregarDados(); }
     catch (e) { toast(e.message, true); }
@@ -1060,12 +1091,12 @@ function renderRegras(){
   const R = (t, tipo, txt, base) => `<div class="regra"><b>${t}<span class="tp ${tipo}">${tipo === 'b' ? 'Bloqueia o envio' : 'Alerta'}</span></b>${txt}<br><small>${base}</small></div>`;
   $('#conteudo').innerHTML = `<p class="hint">O app confere a escala enquanto ela é montada. <b>Bloqueio</b>: a escala não pode ser enviada para aprovação até ser corrigida. <b>Alerta</b>: pode enviar, mas o Gerente Geral vê o aviso.</p>
   <div class="regras">
-    ${R('Carga semanal', 'b', 'Até 15/12/2026: 44h (acima disso aparece só alerta de hora extra). De 16/12/2026: <b>42h</b>, bloqueia. De 16/12/2027: <b>40h</b>. A semana vai de segunda a domingo; a semana de 14 a 20/12/2026 já segue as 42h. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
+    ${R('Carga semanal', 'b', 'Até a semana de 14 a 20/12/2026: 44h (acima disso aparece só alerta de hora extra). A partir de 21/12/2026: <b>42h</b>, bloqueia. A partir de 20/12/2027: <b>40h</b>. A semana vai de segunda a domingo. A semana em que a lei muda (14 a 20/12/2026, mudança na quarta) é de transição: ainda segue a regra antiga, e o app mostra um alerta para lembrar. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
     ${R('Duas folgas por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 dias sem trabalho em cada semana (podem não ser seguidos). Antes disso, 1. Todos os códigos que não são turno (X, FC, FP, XX, BH, FE, AT, F, NA) contam como dia sem trabalho.', 'Emenda Constitucional 141/2026')}
     ${R('No máximo 6 dias seguidos', 'b', 'A folga tem de vir até o 7º dia; trabalhar 7 dias seguidos não é permitido, mesmo com 2 folgas na semana (ex.: folga no início de uma semana e no fim da outra).', 'CLT art. 67; OJ 410 do TST')}
     ${R('11h de descanso entre jornadas', 'b', 'Entre a saída de um dia e a entrada do dia seguinte. Ex.: Tarde (sai 22:00) seguida de Manhã (entra 07:00) dá só 9h: bloqueado.', 'CLT art. 66')}
-    ${R('Mulher: domingo de folga a cada 15 dias', 'b', 'Não pode trabalhar dois domingos seguidos.', 'CLT art. 386')}
-    ${R('Homem: domingo de folga ao menos a cada 7 semanas', 'a', 'Aviso quando chega a 7 domingos seguidos de trabalho. Confira a convenção do Sindifícios.', 'Lei 605/1949 e portaria do MTE sobre repouso em domingo')}
+    ${R('Mulher: domingo de folga a cada 15 dias', 'a', 'Aviso quando trabalha dois domingos seguidos. Os domingos contam a partir de 16/12/2026.', 'CLT art. 386')}
+    ${R('Homem: domingo de folga ao menos a cada 7 semanas', 'a', 'Aviso quando chega a 7 domingos seguidos de trabalho (contando a partir de 16/12/2026). Confira a convenção do Sindifícios.', 'Lei 605/1949 e portaria do MTE sobre repouso em domingo')}
     ${R('Intervalo para almoço', 'b', 'Jornada acima de 6h: mínimo 1h (máximo 2h). De 4h a 6h: 15 min. Conferido no cadastro do turno.', 'CLT art. 71')}
     ${R('Jornada diária', 'b', 'Máximo 10h por dia (8h + 2h extras). Acima de 8h aparece alerta: só vale com acordo ou convenção coletiva.', 'CLT art. 59; EC 141/2026')}
     ${R('Todos os dias marcados', 'b', 'Cada pessoa precisa ter um código em todos os dias do mês: um turno ou X folga, FC compensa feriado, FP preferência de folga, XX folga aniversário, BH banco de horas, FE férias, AT atestado, F falta, NA não se aplica (antes da admissão ou depois do desligamento). Feriados aparecem destacados no topo da grade.', 'Regra do app')}

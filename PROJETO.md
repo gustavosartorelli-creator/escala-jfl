@@ -17,12 +17,12 @@ e Orçamento, então cada pessoa usa o mesmo PIN que já conhece):
 - **visualizacao**: só vê.
 
 ## Regras (index.html: `LEI`, `REGRA`, `validar`, `checarTurno`)
-Bloqueiam o envio: horas por semana acima do limite da data (semana segunda a domingo, vale a regra do domingo que fecha a semana,
-então a semana de 14 a 20/12/2026 já é 42h); menos folgas que o mínimo da semana (F, FE, AF e X contam como dia sem trabalho);
-mais de 6 dias seguidos; menos de 11h entre jornadas; mulher com 2 domingos seguidos trabalhados (CLT 386); turno no domingo
+Bloqueiam o envio: horas por semana acima do limite da data (semana segunda a domingo, vale a regra da segunda-feira que abre a semana;
+a semana de transição 14–20/12/2026 ainda é regra antiga, ver Decisões); menos folgas que o mínimo da semana (todo código que não é turno conta como dia sem trabalho);
+mais de 6 dias seguidos; menos de 11h entre jornadas; turno no domingo
 em departamento fechado no domingo (`esc_config.fecha_domingo`, ligado para Governança e Manutenção); dia sem marcação; pessoa sem sexo
 informado; turno com intervalo ou jornada fora da CLT (art. 71 e 59).
-Alertas: homem com 7 domingos seguidos; jornada acima de 8h; abaixo do mínimo de pessoas por turno (`esc_config.cobertura`).
+Alertas: mulher com 2 domingos seguidos (CLT 386) e homem com 7 (contando a partir de 16/12/2026); semana de transição; jornada acima de 8h; abaixo do mínimo de pessoas por turno (`esc_config.cobertura`).
 As regras de semana, 6 dias seguidos, 11h e domingos olham também o mês anterior (`esc_escala` devolve `anterior`).
 O servidor só confere o fluxo e as permissões (e que o resumo enviado tem 0 bloqueios); as regras rodam no app.
 
@@ -36,6 +36,10 @@ Turnos iniciais: **M** 07:00–15:20 (sáb/dom 08:00–16:20), **I** 11:00–19:
 da 6x1, faltam as versões a partir de 16/12, ex.: Recepção 07:00–16:24). Manutenção do JML: 07, 08, 09, 10, 12 (hora de entrada), com as
 versões antiga e nova da planilha do Willian. A escala guarda uma cópia dos turnos (`esc_escalas.turnos`) ao salvar.
 Manutenção do JML: dez/2026 e jan/2027 importados das planilhas do Willian (OneDrive, Área de Trabalho\Escalas\Manutenção) como rascunho.
+Governança do JML: dez/2026 e jan/2027 importados de "ESCALA - GOVERNANÇA - 2026 (1).xlsx" como rascunho (ver `sql/2026-11-26_governanca_jml.sql`).
+Turnos por função: C camareira, R rouparia, S supervisora de rouparia, A1/A2/A3 ASG (6h, manhã, tarde), G governanta; M/I/T no JML ficaram só para a
+Recepção. A Governança do JML **não** é fechada no domingo (os ASGs trabalham). Nomes trocados para os da planilha: Sol → Solange, Glorinha → Maria da Glória,
+Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha → Cooperada 1 e 2.
 
 ## Onde está cada coisa
 - **App:** `index.html` (HTML, CSS e JS num arquivo só). Sem service worker. Imagem para WhatsApp com html2canvas (cdnjs, carregado só ao usar).
@@ -53,6 +57,14 @@ Manutenção do JML: dez/2026 e jan/2027 importados das planilhas do Willian (On
 - Ao mudar o app, suba `VERSAO` no index.html (aparece no rodapé).
 
 ## Pendências
+- Maria Gilda (JML) em janeiro: a planilha só tinha os dias 1–3. Norma (nova camareira, desde 16/12) também está sem janeiro.
+
+## Decisões do Gustavo (26/11/2026)
+- Semana de transição 14–20/12/2026 (a lei muda na quarta): segue a regra antiga (44h, 1 folga; excesso = alerta de hora extra), com um alerta
+  lembrando; 42h e 2 folgas a partir de 21/12/2026. No código: a semana usa a regra da segunda-feira que a abre (`regraEm(ds[0])`).
+- Domingo das mulheres (CLT 386) é **alerta**, não bloqueio, e os domingos só contam a partir de 16/12/2026 (`REGRA.domingoDesde`).
+- Cooperadas ficam como estão: `esc_funcionarios.sem_regras` (opção "Cooperada / não CLT" na Equipe) tira a pessoa das regras de horas, folgas e domingos.
+- Mês escrito em maiúsculas e negrito acima da escala, com setas ‹ › para o mês anterior e o seguinte.
 - Márcio (JML) em 22→23/01/2027: só 10h36 entre 12–21:24 e 08:00 (bloqueio; o Willian precisa trocar).
 - Cadastrar Recepção e Manutenção (nomes, cargo, sexo) e informar o sexo de todos na Governança.
 - Acessos que faltam: Recepção dos outros prédios (gerente assistente), Manutenção dos outros prédios, Gerente Geral do JML (hoje o Gustavo, admin).
