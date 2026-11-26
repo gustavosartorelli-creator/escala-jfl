@@ -307,7 +307,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v9';
+const VERSAO = 'v10';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -386,9 +386,9 @@ const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','ag
 const nomeMes = mes => MESES[+mes.slice(5, 7) - 1] + ' ' + mes.slice(0, 4);
 /* Período da escala (premissas JFL, nov/2026): do dia 16 ao dia 15 do mês seguinte. MES guarda o início (dia 16). */
 const addMeses = (iso, n) => { const d = dUTC(iso); d.setUTCMonth(d.getUTCMonth() + n); return isoDe(d); };
-// Primeira escala (pedido do Gustavo, 26/11/2026): 01/12/2026 a 15/01/2027, para a equipe se acostumar. Depois, 16 → 15.
-// O período anterior a ela fica 16/11 a 30/11/2026. Igual a esc__periodo no banco.
-const PER_ESPECIAIS = [{ inicio: '2026-12-01', fim: '2027-01-15' }];
+// Transição (pedido do Gustavo, 26/11/2026): escalas separadas de dezembro (01 a 31/12/2026) e janeiro (01 a 15/01/2027),
+// para a equipe se acostumar. Depois, 16 → 15 a partir de 16/01/2027. Antes: 16/11 a 30/11/2026. Igual a esc__periodo no banco.
+const PER_ESPECIAIS = [{ inicio: '2026-12-01', fim: '2026-12-31' }, { inicio: '2027-01-01', fim: '2027-01-15' }];
 const inicio16 = iso => { const d = iso.slice(0, 8) + '16'; return +iso.slice(8) >= 16 ? d : addMeses(d, -1); };
 const inicioPer = iso => { const e = PER_ESPECIAIS.find(e => iso >= e.inicio && iso <= e.fim); return e ? e.inicio : inicio16(iso); };
 const fimPer = p => {
@@ -858,7 +858,7 @@ function folgasPrevistas(){
     if (FERIADOS[d]) fers.push(d);
   }
   const total = sab + dom;
-  return { total, texto: `Referência de folgas no período: ${sab} sábados${sab && regraEm(MES).folgas === 1 ? ' (só das semanas já na 5x2)' : ''} + ${dom} domingos = ${total} folgas regulares (X)${fers.length ? `. Feriados: ${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')} (quem trabalhar ganha folga compensatória, FC, à parte)` : ''}` };
+  return { total, texto: `Referência de folgas no período: ${sab} sábado${sab === 1 ? '' : 's'}${sab && regraEm(MES).folgas === 1 ? ' (só das semanas já na 5x2)' : ''} + ${dom} domingo${dom === 1 ? '' : 's'} = ${total} folgas regulares (X)${fers.length ? `. Feriados: ${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')} (quem trabalhar ganha folga compensatória, FC, à parte)` : ''}` };
 }
 
 function tabelaEscala({ ed = false, marcas = false } = {}){
@@ -1298,7 +1298,7 @@ function renderRegras(){
   $('#conteudo').innerHTML = `<p class="hint">O app confere a escala enquanto ela é montada. <b>Bloqueio</b>: a escala não pode ser enviada para aprovação até ser corrigida. <b>Alerta</b>: pode enviar, mas o Gerente Geral vê o aviso.</p>
   <div class="regras">
     ${R('Carga semanal', 'b', 'Até a semana de 14 a 20/12/2026: 44h (acima disso aparece só alerta de hora extra). A partir de 21/12/2026: <b>42h</b>, bloqueia. A partir de 20/12/2027: <b>40h</b>. A semana vai de segunda a domingo. A semana em que a lei muda (14 a 20/12/2026, mudança na quarta) é de transição: ainda segue a regra antiga, e o app mostra um alerta para lembrar. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
-    ${R('Período da escala: 16 a 15', 'b', 'Cada escala vai do dia 16 ao dia 15 do mês seguinte. A primeira, para a equipe se acostumar, vai de 01/12/2026 a 15/01/2027; os períodos 16 a 15 começam em 16/01/2027. O app confere a continuidade com a escala anterior (semanas, dias seguidos, 11h e domingos).', 'Premissas JFL 5x2, item 07')}
+    ${R('Período da escala: 16 a 15', 'b', 'Cada escala vai do dia 16 ao dia 15 do mês seguinte. Na transição, para a equipe se acostumar: dezembro inteiro (01 a 31/12/2026) e janeiro até o dia 15 (01 a 15/01/2027); os períodos 16 a 15 começam em 16/01/2027. O app confere a continuidade com a escala anterior (semanas, dias seguidos, 11h e domingos).', 'Premissas JFL 5x2, item 07')}
     ${R('Duas folgas regulares por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 folgas regulares (X ou FP) em cada semana, seguidas ou alternadas. Antes disso, 1. Férias, atestado, falta e NA reduzem o que falta naquela semana. <b>FC, BH e XX não substituem</b> a folga da semana.', 'EC 141/2026; Premissas JFL 5x2, itens 02 e 05')}
     ${R('Dias seguidos de trabalho', 'b', 'Ideal: até 5. 6 dias seguidos só excepcionalmente, na virada da semana (alerta). 7 ou mais: não permitido (bloqueia), inclusive na virada de uma escala para a outra.', 'Premissas JFL 5x2, item 03; CLT art. 67')}
     ${R('Feriado trabalhado', 'a', 'Quem trabalha no feriado precisa de uma folga compensatória (FC) no período, à parte das 2 folgas da semana.', 'Premissas JFL 5x2, item 05; Convenção Coletiva')}

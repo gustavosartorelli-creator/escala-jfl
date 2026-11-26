@@ -13,6 +13,7 @@ Perfis por PIN de 4 dígitos (`esc_usuarios`, independente dos outros apps; os P
 e Orçamento, então cada pessoa usa o mesmo PIN que já conhece):
 - **admin**: tudo, todos os prédios (Gustavo).
 - **aprovador**: Gerente Geral do prédio; monta, aprova, edita turnos e cadastra acessos do prédio.
+  Com `predio_id` nulo aprova em todos os prédios: Rafaela (Superintendente de Operações), desde 26/11/2026 (a restrição que exigia prédio foi tirada).
 - **montador**: líder de um departamento (`departamento`); `predio_id` nulo = todos os prédios (Graciele, Manutenção).
 - **visualizacao**: só vê.
 
@@ -61,7 +62,8 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Maria Gilda (JML) em janeiro: a planilha só tinha 1–3; o Gustavo pediu "como dezembro" e foi preenchido R de segunda a sexta, X sábado e domingo (5x2, 42h).
 
 ## Premissas da JFL (Premissas_Escalas_5x2_JFL.pdf, nov/2026) — como estão no app
-- **Primeira escala: 01/12/2026 a 15/01/2027** (pedido do Gustavo, para a equipe se acostumar); antes dela, 16/11 a 30/11/2026.
+- **Transição: escala de dezembro (01 a 31/12/2026) e escala de janeiro (01 a 15/01/2027), separadas** (pedido do Gustavo, para a equipe
+  se acostumar); antes, 16/11 a 30/11/2026.
   Os períodos 16 → 15 começam em 16/01/2027. App: `PER_ESPECIAIS`; banco: `esc__periodo`.
 - **Período 16 → 15** (item 07): `esc_escalas.mes` = dia 16 de início; no app `MES` guarda o início, `fimPer`, `perAnterior`, `nomePer`
   ("DEZEMBRO - JANEIRO 2027", como as abas antigas da planilha). A escala anterior entra na conferência (semanas, dias seguidos, 11h, domingos).
