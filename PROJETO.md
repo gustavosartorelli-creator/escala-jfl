@@ -60,6 +60,17 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Norma (nova camareira, desde 16/12) está sem janeiro: a governanta preenche.
 - Maria Gilda (JML) em janeiro: a planilha só tinha 1–3; o Gustavo pediu "como dezembro" e foi preenchido R de segunda a sexta, X sábado e domingo (5x2, 42h).
 
+## Premissas da JFL (Premissas_Escalas_5x2_JFL.pdf, nov/2026) — como estão no app
+- **Período 16 → 15** (item 07): `esc_escalas.mes` = dia 16 de início; no app `MES` guarda o início, `fimPer`, `perAnterior`, `nomePer`
+  ("DEZEMBRO - JANEIRO 2027", como as abas antigas da planilha). A escala anterior entra na conferência (semanas, dias seguidos, 11h, domingos).
+- Jornada 42h, 8h24 + 1h de intervalo (item 01): alerta só acima de 8h24/dia (`REGRA.jornadaNormal`).
+- 2 folgas regulares por semana (02): contam só X e FP (`FOLGA_REGULAR`); FE/AT/F/NA reduzem o que falta; **FC, BH e XX não substituem** (05).
+- Dias seguidos (03): 6 = alerta, 7+ = bloqueio (`diasSeguidosIdeal` / `diasSeguidosMax`).
+- Domingos (04): mulher quinzenal, homem 1 a cada 4 semanas — os dois como alerta (decisão do Gustavo de não bloquear).
+- Feriado trabalhado (05): alerta pedindo FC no período.
+- Equalização (06): referência = sábados + domingos do período (coluna "Folgas de N"; antes de 16/12/2026, só domingos).
+- Cobertura (08): mínimo por turno na aba Turnos (alerta).
+
 ## Decisões do Gustavo (26/11/2026)
 - **Por enquanto só o JML faz escala no app.** Tudo o que o Gustavo disser sobre equipes e regras vale para o JML; os outros prédios
   ficam como estão (equipe da Governança importada, sem sexo preenchido). No JML: Governança toda feminina, Manutenção toda masculina.

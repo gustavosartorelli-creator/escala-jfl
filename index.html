@@ -87,6 +87,7 @@ main{max-width:1400px;margin:0 auto;padding:20px}
 .tabs button.on{color:var(--brand);border-bottom-color:var(--brand)}
 .mesnav{display:flex;align-items:center;justify-content:center;gap:18px;margin:0 0 14px}
 .mesnav h2{margin:0;font:700 22px/1.2 var(--sans);letter-spacing:.08em;min-width:220px;text-align:center}
+.mesnav h2 small{display:block;font-size:13px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:2px}
 .mesnav .seta{width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--brand);font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 0 3px}
 .mesnav .seta:hover{border-color:var(--brand)}
 @media(max-width:560px){ .mesnav{gap:10px} .mesnav h2{font-size:18px;min-width:0} }
@@ -306,7 +307,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v7';
+const VERSAO = 'v8';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -350,13 +351,18 @@ const LEI = [
 ];
 const REGRA = {
   descansoMin: 11 * 60,     // entre jornadas (CLT art. 66)
-  diasSeguidosMax: 6,       // folga no máximo após o 6º dia seguido (OJ 410 do TST)
-  domingoMulherSemanas: 2,  // mulher: domingo de folga a cada 15 dias (CLT art. 386) — alerta
+  // Premissas JFL (nov/2026): priorizar até 5 dias seguidos; 6 só excepcionalmente (alerta); 7 ou mais nunca (bloqueio)
+  diasSeguidosIdeal: 5,
+  diasSeguidosMax: 6,
+  domingoMulherSemanas: 2,  // mulher: revezamento quinzenal (CLT art. 386) — alerta (decisão do Gustavo)
   domingoDesde: '2026-12-16', // os domingos só contam a partir daqui (decisão do Gustavo em 26/11/2026)
-  domingoHomemSemanas: 7,   // homem: ao menos 1 domingo de folga a cada 7 semanas (alerta)
+  domingoHomemSemanas: 4,   // homem: ao menos 1 domingo de folga a cada 4 semanas (premissas JFL) — alerta
   jornadaMax: 10 * 60,      // 8h + 2h extras (CLT art. 59)
-  jornadaNormal: 8 * 60
+  jornadaNormal: 8 * 60 + 24 // 8h24 é a jornada padrão da 5x2 (premissas JFL)
 };
+// Folgas regulares (as 2 da semana) e o que não conta como regular (premissas: compensação de feriado é à parte)
+const FOLGA_REGULAR = ['X', 'FP'];
+const AUSENCIA = ['FE', 'AT', 'F'];          // não trabalha, mas não é folga: não exige as 2 folgas nesses dias
 const regraEm = iso => LEI.filter(r => r.desde <= iso).pop();
 
 /* ================= Utils ================= */
@@ -378,6 +384,15 @@ const mesAnterior = mes => { const d = dUTC(mes); d.setUTCMonth(d.getUTCMonth() 
 const ddmm = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
 const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 const nomeMes = mes => MESES[+mes.slice(5, 7) - 1] + ' ' + mes.slice(0, 4);
+/* Período da escala (premissas JFL, nov/2026): do dia 16 ao dia 15 do mês seguinte. MES guarda o início (dia 16). */
+const addMeses = (iso, n) => { const d = dUTC(iso); d.setUTCMonth(d.getUTCMonth() + n); return isoDe(d); };
+const inicioPer = iso => { const d = iso.slice(0, 8) + '16'; return +iso.slice(8) >= 16 ? d : addMeses(d, -1); };
+const fimPer = p => addDias(addMeses(p, 1), -1);
+const perAnterior = p => addMeses(p, -1);
+const mesNome = iso => MESES[+iso.slice(5, 7) - 1];
+// "dezembro - janeiro 2027" (como as abas antigas da planilha) e "16/12/2026 a 15/01/2027"
+const nomePer = p => { const f = fimPer(p); return `${mesNome(p)} - ${mesNome(f)} ${f.slice(0, 4)}`; };
+const datasPer = p => { const f = fimPer(p); return `${ddmm(p)}/${p.slice(0, 4)} a ${ddmm(f)}/${f.slice(0, 4)}`; };
 const SEM = ['D','S','T','Q','Q','S','S'];
 const SEM_NOME = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 const hm = min => { const s = min < 0 ? '-' : ''; min = Math.abs(Math.round(min)); return s + Math.floor(min / 60) + 'h' + String(min % 60).padStart(2, '0'); };
@@ -466,15 +481,15 @@ function start(){
   $('#hdSub').textContent = predios.length === 1 ? `Escalas · ${predios[0].nome}` : 'Escalas';
   mostrarLogoPredio();
   $('#selPredio').onchange = async () => { await salvarAgora(); PREDIO = $('#selPredio').value; store.set('predio', PREDIO); mostrarLogoPredio(); carregar(); };
-  // Meses: do atual a 4 à frente (e 2 para trás); padrão: o próximo mês a partir do dia 15
-  const hoje = hojeISO(), atual = hoje.slice(0, 8) + '01';
-  const meses = []; let m = mesAnterior(mesAnterior(atual));
-  for (let i = 0; i < 7; i++) { meses.push(m); m = fimDoMes(m); m = addDias(m, 1); }
-  const proximo = addDias(fimDoMes(atual), 1);
-  MES = meses.includes(store.get('mes')) ? store.get('mes') : (+hoje.slice(8) >= 15 ? proximo : atual);
-  $('#selMes').innerHTML = meses.map(x => `<option value="${x}">${nomeMes(x)}</option>`).join('');
+  // Períodos 16→15: 2 para trás e 4 à frente; padrão: o próximo período (o que começa no próximo dia 16)
+  const hoje = hojeISO(), atual = inicioPer(hoje);
+  const meses = []; let m = addMeses(atual, -2);
+  for (let i = 0; i < 7; i++) { meses.push(m); m = addMeses(m, 1); }
+  const proximo = addMeses(atual, 1);
+  MES = meses.includes(store.get('per')) ? store.get('per') : proximo;
+  $('#selMes').innerHTML = meses.map(x => `<option value="${x}">${ddmm(x)} a ${ddmm(fimPer(x))}/${fimPer(x).slice(2, 4)}</option>`).join('');
   $('#selMes').value = MES;
-  $('#selMes').onchange = async () => { await salvarAgora(); MES = $('#selMes').value; store.set('mes', MES); carregar(); };
+  $('#selMes').onchange = async () => { await salvarAgora(); MES = $('#selMes').value; store.set('per', MES); carregar(); };
   const deps = deptosVisiveis();
   DEP = deps.includes(store.get('dep')) ? store.get('dep') : deps[0];
   new ResizeObserver(() => document.documentElement.style.setProperty('--hdr', $('#hdr').offsetHeight + 'px')).observe($('#hdr'));
@@ -496,10 +511,10 @@ async function carregar(){
 }
 // Setas do mês: anda um mês e, se ele não estiver na lista do topo, acrescenta
 async function irMes(delta){
-  const d = dUTC(MES); d.setUTCMonth(d.getUTCMonth() + delta); const m = isoDe(d);
+  const m = addMeses(MES, delta);
   const sel = $('#selMes');
   if (![...sel.options].some(o => o.value === m)) {
-    const op = new Option(nomeMes(m), m), depois = [...sel.options].find(o => o.value > m);
+    const op = new Option(`${ddmm(m)} a ${ddmm(fimPer(m))}/${fimPer(m).slice(2, 4)}`, m), depois = [...sel.options].find(o => o.value > m);
     sel.add(op, depois || null);
   }
   sel.value = m; await sel.onchange();
@@ -530,7 +545,7 @@ const turnoEm = (sigla, iso, lista = D.turnos) => lista.find(t => t.sigla === si
 // Versões do departamento que valem em algum dia do período
 const versoesDoDep = (dep, ini, fim, lista = D.turnos) => lista.filter(t => doDep(t, dep) && (!t.desde || t.desde <= fim) && (!t.ate || t.ate >= ini));
 // Uma linha por sigla (para a paleta), na ordem do cadastro; mostra a versão mais nova
-function turnosDoDep(dep, ini = MES, fim = fimDoMes(MES)){
+function turnosDoDep(dep, ini = MES, fim = fimPer(MES)){
   const out = [];
   for (const t of versoesDoDep(dep, ini, fim)) { const i = out.findIndex(x => x.sigla === t.sigla); if (i < 0) out.push(t); else if ((t.desde || '') > (out[i].desde || '')) out[i] = t; }
   return out;
@@ -540,7 +555,7 @@ const corTurno = sigla => { const i = siglasOrdem().indexOf(sigla); return i < 0
 const clsCod = c => !c ? '' : OUTROS[c] ? OUTROS[c].cls : corTurno(c);
 const periodo = t => t.desde && t.ate ? ` de ${ddmm(t.desde)} a ${ddmm(t.ate)}` : t.desde ? ` a partir de ${ddmm(t.desde)}/${t.desde.slice(2, 4)}` : t.ate ? ` até ${ddmm(t.ate)}/${t.ate.slice(2, 4)}` : '';
 // Texto da legenda de uma sigla no período: "07:00–16:00 até 15/12/26 · 07:00–16:24 a partir de 16/12/26"
-function textoSigla(sigla, dep, ini = MES, fim = fimDoMes(MES)){
+function textoSigla(sigla, dep, ini = MES, fim = fimPer(MES)){
   return versoesDoDep(dep, ini, fim).filter(t => t.sigla === sigla).sort((a, b) => (a.desde || '').localeCompare(b.desde || ''))
     .map(t => textoTurno(t) + periodo(t)).join(' · ');
 }
@@ -567,7 +582,7 @@ function checarTurno(t){
     else if (j.trab > 4 * 60 && j.intervalo < 15) out.push({ n: 'e', t: `${q}: jornada de ${hm(j.trab)} exige intervalo de no mínimo 15 min (CLT art. 71 §1º)` });
     if (j.intervalo > 120) out.push({ n: 'e', t: `${q}: intervalo acima de 2h só com acordo escrito ou convenção (CLT art. 71)` });
     if (j.trab > REGRA.jornadaMax) out.push({ n: 'e', t: `${q}: ${hm(j.trab)} trabalhadas; o máximo é 10h por dia (8h + 2h extras, CLT art. 59)` });
-    else if (j.trab > REGRA.jornadaNormal) out.push({ n: 'w', t: `${q}: ${hm(j.trab)} trabalhadas, acima de 8h por dia; só vale com acordo ou convenção coletiva (até 16/12/2027, a convenção pode ampliar a jornada diária para fechar as 42h)` });
+    else if (j.trab > REGRA.jornadaNormal) out.push({ n: 'w', t: `${q}: ${hm(j.trab)} trabalhadas, acima das 8h24 por dia da 5x2; vira hora extra` });
   }
   return out;
 }
@@ -591,7 +606,7 @@ function periodos(ds){
 }
 
 function validar(){
-  const ini = MES, fim = fimDoMes(MES), antIni = mesAnterior(MES);
+  const ini = MES, fim = fimPer(MES), antIni = perAnterior(MES);
   const ant = E.anterior, antTurnos = (ant && ant.turnos && ant.turnos.length) ? ant.turnos : D.turnos;
   const cel = {}, lista = [];
   const marca = (fid, iso, n, msg) => {
@@ -608,7 +623,9 @@ function validar(){
     else return { tipo: '?' };
     if (!c) return { tipo: iso >= ini ? 'vazio' : '?' };
     if (c === 'NA') return { tipo: 'x', c };
-    if (OUTROS[c]) return { tipo: 'folga', c };
+    if (FOLGA_REGULAR.includes(c)) return { tipo: 'folga', c };
+    if (AUSENCIA.includes(c)) return { tipo: 'ausencia', c };
+    if (OUTROS[c]) return { tipo: 'extra', c };   // FC, BH, XX: folga a mais, não conta nas 2 da semana
     const t = turnoEm(c, iso, lt) || turnoEm(c, iso);
     if (!t) return { tipo: D.turnos.some(t => t.sigla === c) ? 'foraVigencia' : 'invalido', c };
     const j = jornada(t, iso), base = Math.round((dUTC(iso) - dUTC(antIni)) / 864e5) * 1440;
@@ -641,8 +658,9 @@ function validar(){
       const ds = [0,1,2,3,4,5,6].map(i => addDias(s, i)), r = regraEm(ds[0]);
       const xs = ds.map(d => info(f, d));
       const min = xs.reduce((a, x) => a + (x.tipo === 'trab' ? x.trab : 0), 0);
-      const folgas = xs.filter(x => x.tipo === 'folga' || x.tipo === 'x').length;
-      const desconhecidos = xs.filter(x => x.tipo === '?' || x.tipo === 'vazio').length;
+      // Folgas regulares da semana: X e FP. Férias, atestado, falta e "não se aplica" reduzem o que falta; FC, BH e XX não contam.
+      const folgas = xs.filter(x => x.tipo === 'folga').length;
+      const desconhecidos = xs.filter(x => ['?', 'vazio', 'x', 'ausencia'].includes(x.tipo)).length;
       const per = `Semana ${ddmm(ds[0])} a ${ddmm(ds[6])}`;
       if (min > r.horas * 60) {
         // Antes de 16/12/2026 (regra antiga) passar do limite vira hora extra: alerta. Na regra nova, bloqueia.
@@ -652,7 +670,8 @@ function validar(){
       }
       const precisa = Math.max(0, r.folgas - desconhecidos);
       if (folgas < precisa) {
-        const msg = `${per}: ${folgas} folga${folgas === 1 ? '' : 's'}; o mínimo é ${r.folgas} por semana (${r.nome})`;
+        const extras = xs.filter(x => x.tipo === 'extra').map(x => x.c);
+        const msg = `${per}: ${folgas} folga${folgas === 1 ? '' : 's'} regular${folgas === 1 ? '' : 'es'} (X); o mínimo é ${r.folgas} por semana${extras.length ? ` — ${extras.join(', ')} não substitui a folga da semana` : ''}`;
         add('b', f, msg); ds.forEach((d, i) => xs[i].tipo === 'trab' && marca(f.id, d, 'b', msg));
       }
     }
@@ -664,8 +683,11 @@ function validar(){
       if (x.tipo === 'trab') {
         seguidos++;
         if (seguidos > REGRA.diasSeguidosMax && d >= ini) {
-          const msg = `${ddmm(d)}: ${seguidos}º dia seguido de trabalho; o máximo é ${REGRA.diasSeguidosMax} dias seguidos sem folga`;
+          const msg = `${ddmm(d)}: ${seguidos}º dia seguido de trabalho; 7 ou mais dias seguidos não é permitido`;
           marca(f.id, d, 'b', msg); add('b', f, msg);
+        } else if (seguidos > REGRA.diasSeguidosIdeal && d >= ini) {
+          const msg = `${ddmm(d)}: ${seguidos}º dia seguido de trabalho; o ideal é até ${REGRA.diasSeguidosIdeal} (6 só excepcionalmente, na virada da semana)`;
+          marca(f.id, d, 'a', msg); add('a', f, msg);
         }
         if (antes && antes.tipo === 'trab' && d >= ini) {
           const desc = x.ini - antes.fim;
@@ -688,10 +710,15 @@ function validar(){
         const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; mulher precisa de folga no domingo a cada 15 dias (CLT art. 386)`;
         marca(f.id, d, 'a', msg); add('a', f, msg);
       } else if (f.sexo === 'M' && n >= REGRA.domingoHomemSemanas) {
-        const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; dê ao menos 1 domingo de folga a cada 7 semanas`;
+        const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; homem precisa de ao menos 1 domingo de folga a cada 4 semanas`;
         marca(f.id, d, 'a', msg); add('a', f, msg);
       }
     }
+
+    // Feriado trabalhado: compensar com folga (FC), à parte das 2 folgas da semana
+    const ferTrab = dias.filter(d => FERIADOS[d] && info(f, d).tipo === 'trab');
+    const fcs = dias.filter(d => (GRADE[f.id] || {})[d] === 'FC').length;
+    if (ferTrab.length > fcs) add('a', f, `Trabalha no feriado ${ferTrab.map(d => `${ddmm(d)} (${FERIADOS[d]})`).join(', ')}: lançar ${ferTrab.length - fcs} folga${ferTrab.length - fcs > 1 ? 's' : ''} compensatória${ferTrab.length - fcs > 1 ? 's' : ''} (FC)`);
   }
 
   // Semana de transição (a lei muda no meio da semana): segue a regra antiga, com um lembrete
@@ -705,10 +732,10 @@ function validar(){
   const mais8 = [];
   for (const t of usados)
     for (const m of checarTurno(t)) {
-      if (m.n === 'w' && /acima de 8h/.test(m.t)) { if (!mais8.includes(t.sigla)) mais8.push(t.sigla); continue; }
-      add(m.n === 'e' ? 'b' : 'a', null, `Turno ${t.sigla} ${textoTurno(t)}${periodo(t)}: ${m.t}`);
+      if (m.n === 'w' && /acima das 8h24/.test(m.t)) { const r = horaLonga(t, t.desde || ini); if (!mais8.includes(r)) mais8.push(r); continue; }
+      add(m.n === 'e' ? 'b' : 'a', null, `Horário ${horaLonga(t, t.desde || ini)}${periodo(t)}: ${m.t}`);
     }
-  if (mais8.length) add('a', null, `Turno${mais8.length > 1 ? 's' : ''} ${mais8.join(', ')} com mais de 8h de trabalho por dia: só vale com acordo ou convenção coletiva (até 16/12/2027 a convenção pode ampliar a jornada diária para fechar as 42h)`);
+  if (mais8.length) add('a', null, `Horário${mais8.length > 1 ? 's' : ''} ${mais8.join(', ')} com mais de 8h24 de trabalho por dia (o padrão da 5x2): vira hora extra`);
 
   // Departamento fechado no domingo: domingo só pode ser folga (F, FE, AF ou X)
   if (fechaDomingo(DEP)) for (const f of funcs) for (const d of dias.filter(d => dow(d) === 0)) {
@@ -744,7 +771,7 @@ function preencherDomingos(){
   if (!nova && !fechaDomingo(DEP)) return;
   for (const f of funcionariosDaEscala().filter(f => f.ativo)) {
     const g = GRADE[f.id] = GRADE[f.id] || {};
-    for (let d = MES; d <= fimDoMes(MES); d = addDias(d, 1)) {
+    for (let d = MES; d <= fimPer(MES); d = addDias(d, 1)) {
       if (g[d]) continue;
       if (dow(d) === 0 && fechaDomingo(DEP)) g[d] = 'X';
       else if (nova && f.turno_padrao && turnoEm(f.turno_padrao, d)) g[d] = f.turno_padrao;
@@ -759,13 +786,13 @@ const horaCurta = (t, iso) => { const j = jornada(t, iso); return hhCurto(j.ini)
 const horaLonga = (t, iso) => { const j = jornada(t, iso); return hhmm2(j.ini) + ' às ' + hhmm2(j.fim); };       // 09:00 às 17:20
 // Dia do mês em que algum horário do departamento muda (ex.: 16/12/2026); null se não muda
 function corteDoMes(){
-  const fim = fimDoMes(MES);
+  const fim = fimPer(MES);
   const ds = D.turnos.filter(t => doDep(t, DEP) && t.desde && t.desde > MES && t.desde <= fim).map(t => t.desde).sort();
   return ds[0] || null;
 }
 // Horário de cada pessoa em cada parte do mês: o mais usado nos dias de trabalho (ou o turno padrão)
 function horariosPessoa(f, corte){
-  const partes = corte ? [[MES, addDias(corte, -1)], [corte, fimDoMes(MES)]] : [[MES, fimDoMes(MES)]];
+  const partes = corte ? [[MES, addDias(corte, -1)], [corte, fimPer(MES)]] : [[MES, fimPer(MES)]];
   return partes.map(([a, b]) => {
     const n = {};
     for (let d = a; d <= b; d = addDias(d, 1)) {
@@ -796,7 +823,7 @@ function padraoSigla(f, d){
 }
 // Outros horários do departamento para a paleta, escritos como na planilha (sem repetir)
 function horariosPaleta(){
-  const fim = fimDoMes(MES), out = [];
+  const fim = fimPer(MES), out = [];
   for (const t of turnosDoDep(DEP)) {
     const dRef = t.ate && t.ate < fim ? t.ate : fim, rot = horaCurta(t, dRef);
     if (!out.some(o => o.rotulo === rot)) out.push({ sigla: t.sigla, rotulo: rot, texto: textoSigla(t.sigla, DEP) });
@@ -810,16 +837,15 @@ const PERIODOS = [['Manhã', 0, 600], ['Inter', 600, 780], ['Tarde', 780, 1440]]
 
 // Folgas previstas no mês: para cada domingo do mês, as folgas da semana (1 na 6x1, 2 na 5x2),
 // mais os feriados que não caem no domingo (o domingo já é folga)
-const CODIGOS_FOLGA = ['X', 'FC', 'FP', 'XX', 'BH'];
+// Premissas JFL: a referência de folgas regulares do período é a quantidade de sábados e domingos (equalização).
+// Feriado trabalhado é compensado à parte, com FC.
+const CODIGOS_FOLGA = FOLGA_REGULAR;
 function folgasPrevistas(){
-  const fim = fimDoMes(MES), doms = [], fers = [];
-  for (let d = MES; d <= fim; d = addDias(d, 1)) { if (dow(d) === 0) doms.push(d); else if (FERIADOS[d]) fers.push(d); }
-  const porDom = doms.map(d => regraEm(segundaDe(d)).folgas), soma = porDom.reduce((a, b) => a + b, 0);
-  const todas2 = porDom.every(n => n === 2), todas1 = porDom.every(n => n === 1);
-  const parteDom = todas2 ? `${doms.length} domingos × 2 = ${soma}` : todas1 ? `${doms.length} domingos × 1 = ${soma}`
-    : `${doms.length} domingos: ${porDom.filter(n => n === 1).length} semana(s) 6x1 × 1 + ${porDom.filter(n => n === 2).length} semana(s) 5x2 × 2 = ${soma}`;
-  const total = soma + fers.length;
-  return { total, texto: `Folgas previstas no mês: ${parteDom}${fers.length ? ` + ${fers.length} feriado${fers.length > 1 ? 's' : ''} (${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')})` : ''} = ${total}` };
+  const fim = fimPer(MES); let sab = 0, dom = 0; const fers = [];
+  for (let d = MES; d <= fim; d = addDias(d, 1)) { if (dow(d) === 6) sab++; if (dow(d) === 0) dom++; if (FERIADOS[d]) fers.push(d); }
+  if (fim < '2026-12-16') return { total: dom, texto: `Referência de folgas no período (6x1, antes da mudança): ${dom} domingos = ${dom} folgas` };
+  const total = sab + dom;
+  return { total, texto: `Referência de folgas no período: ${sab} sábados + ${dom} domingos = ${total} folgas regulares (X)${fers.length ? `. Feriados: ${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')} (quem trabalhar ganha folga compensatória, FC, à parte)` : ''}` };
 }
 
 function tabelaEscala({ ed = false, marcas = false } = {}){
@@ -862,7 +888,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
   }
   // Rodapé como o da planilha: quantos por período e no dia
   const periodoDe = (t, d) => { const ini = jornada(t, d).ini % 1440; return PERIODOS.findIndex(p => ini >= p[1] && ini < p[2]); };
-  const temPer = PERIODOS.map((p, i) => versoesDoDep(DEP, MES, fimDoMes(MES)).some(t => periodoDe(t, t.desde || MES) === i));
+  const temPer = PERIODOS.map((p, i) => versoesDoDep(DEP, MES, fimPer(MES)).some(t => periodoDe(t, t.desde || MES) === i));
   const linhas = PERIODOS.map((p, i) => [p[0], i]).filter((_, i) => temPer[i]).concat([['Total no dia', -1]]);
   h += `</tbody><tfoot>`;
   for (const [rot, i] of linhas) {
@@ -890,7 +916,7 @@ function renderEscala(){
   let h = '';
   // Mês em destaque, com setas para o anterior e o seguinte
   h += `<div class="mesnav"><button class="seta" id="mPrev" aria-label="Mês anterior" title="Mês anterior">‹</button>
-    <h2>${esc(nomeMes(MES).toUpperCase())}</h2>
+    <h2>${esc(nomePer(MES).toUpperCase())}<small>${datasPer(MES)}</small></h2>
     <button class="seta" id="mNext" aria-label="Próximo mês" title="Próximo mês">›</button></div>`;
   // Departamentos com a situação do mês
   h += `<div class="deps">${deps.map(d => { const s = statusDe(d); return `<button class="dep ${d === DEP ? 'on' : ''}" data-dep="${d}"><b>${DEPTOS[d]}</b><span class="pill ${s}">${STATUS[s]}</span></button>`; }).join('')}</div>`;
@@ -941,7 +967,7 @@ function renderEscala(){
     ${Object.entries(OUTROS).map(([k, o]) => `<span><b class="${o.cls}">${k}</b>${esc(o.nome)}</span>`).join('')}
     <span><b class="lfds">&nbsp;&nbsp;</b>Fim de semana</span>
     ${fers.length ? `<span><b class="lfer">&nbsp;&nbsp;</b>Feriado: ${fers.map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}</span>` : ''}</div>`;
-  const r = regraEm(segundaDe(fimDoMes(MES))), r0 = regraEm(MES);
+  const r = regraEm(segundaDe(fimPer(MES))), r0 = regraEm(MES);
   h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de transição; a partir de ${ddmm(segundaDe(addDias(r.desde, 6)))} ${esc(r.nome)}`}. Semanas de segunda a domingo (linha mais grossa = segunda-feira).</p>`;
 
   // Problemas
@@ -1078,7 +1104,7 @@ function montarExport(){
   const st = E.escala ? E.escala.status : 'nova';
   V = validar();
   const dias = V.dias;
-  let h = `<h2 class="mes">${esc(nomeMes(MES).toUpperCase())}</h2><h2>Escala de trabalho · ${esc(nomePredio())} · ${esc(DEPTOS[DEP])}</h2>
+  let h = `<h2 class="mes">${esc(nomePer(MES).toUpperCase())}</h2><div style="font-size:14px;font-weight:600;margin-bottom:4px">${datasPer(MES)}</div><h2>Escala de trabalho · ${esc(nomePredio())} · ${esc(DEPTOS[DEP])}</h2>
     <div class="sub">${st === 'aprovada' ? `Aprovada por ${esc(E.escala.aprovada_por)} em ${quando(E.escala.aprovada_em)}` : `<span class="marca">${st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA'}</span>`}</div>
     <div style="font-size:13px;font-weight:600;margin:0 0 6px">${esc(folgasPrevistas().texto)}</div>
     ${tabelaEscala({ ed: false, marcas: false })}
@@ -1259,13 +1285,16 @@ function renderRegras(){
   $('#conteudo').innerHTML = `<p class="hint">O app confere a escala enquanto ela é montada. <b>Bloqueio</b>: a escala não pode ser enviada para aprovação até ser corrigida. <b>Alerta</b>: pode enviar, mas o Gerente Geral vê o aviso.</p>
   <div class="regras">
     ${R('Carga semanal', 'b', 'Até a semana de 14 a 20/12/2026: 44h (acima disso aparece só alerta de hora extra). A partir de 21/12/2026: <b>42h</b>, bloqueia. A partir de 20/12/2027: <b>40h</b>. A semana vai de segunda a domingo. A semana em que a lei muda (14 a 20/12/2026, mudança na quarta) é de transição: ainda segue a regra antiga, e o app mostra um alerta para lembrar. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
-    ${R('Duas folgas por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 dias sem trabalho em cada semana (podem não ser seguidos). Antes disso, 1. Todos os códigos que não são turno (X, FC, FP, XX, BH, FE, AT, F, NA) contam como dia sem trabalho.', 'Emenda Constitucional 141/2026')}
-    ${R('No máximo 6 dias seguidos', 'b', 'A folga tem de vir até o 7º dia; trabalhar 7 dias seguidos não é permitido, mesmo com 2 folgas na semana (ex.: folga no início de uma semana e no fim da outra).', 'CLT art. 67; OJ 410 do TST')}
+    ${R('Período da escala: 16 a 15', 'b', 'Cada escala vai do dia 16 ao dia 15 do mês seguinte, e o app confere a continuidade com a escala anterior (semanas, dias seguidos, 11h e domingos).', 'Premissas JFL 5x2, item 07')}
+    ${R('Duas folgas regulares por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 folgas regulares (X ou FP) em cada semana, seguidas ou alternadas. Antes disso, 1. Férias, atestado, falta e NA reduzem o que falta naquela semana. <b>FC, BH e XX não substituem</b> a folga da semana.', 'EC 141/2026; Premissas JFL 5x2, itens 02 e 05')}
+    ${R('Dias seguidos de trabalho', 'b', 'Ideal: até 5. 6 dias seguidos só excepcionalmente, na virada da semana (alerta). 7 ou mais: não permitido (bloqueia), inclusive na virada de uma escala para a outra.', 'Premissas JFL 5x2, item 03; CLT art. 67')}
+    ${R('Feriado trabalhado', 'a', 'Quem trabalha no feriado precisa de uma folga compensatória (FC) no período, à parte das 2 folgas da semana.', 'Premissas JFL 5x2, item 05; Convenção Coletiva')}
+    ${R('Equalização das folgas', 'a', 'Referência de folgas regulares no período: quantidade de sábados + domingos. A coluna "Folgas" fica verde quando bate, amarela quando falta e cinza quando passa; diferenças precisam de justificativa.', 'Premissas JFL 5x2, item 06')}
     ${R('11h de descanso entre jornadas', 'b', 'Entre a saída de um dia e a entrada do dia seguinte. Ex.: Tarde (sai 22:00) seguida de Manhã (entra 07:00) dá só 9h: bloqueado.', 'CLT art. 66')}
-    ${R('Mulher: domingo de folga a cada 15 dias', 'a', 'Aviso quando trabalha dois domingos seguidos. Os domingos contam a partir de 16/12/2026.', 'CLT art. 386')}
-    ${R('Homem: domingo de folga ao menos a cada 7 semanas', 'a', 'Aviso quando chega a 7 domingos seguidos de trabalho (contando a partir de 16/12/2026). Confira a convenção do Sindifícios.', 'Lei 605/1949 e portaria do MTE sobre repouso em domingo')}
+    ${R('Mulher: revezamento quinzenal do domingo', 'a', 'Aviso quando trabalha dois domingos seguidos. Os domingos contam a partir de 16/12/2026.', 'CLT art. 386; Premissas JFL 5x2, item 04')}
+    ${R('Homem: 1 domingo de folga a cada 4 semanas', 'a', 'Aviso quando chega a 4 domingos seguidos de trabalho (contando a partir de 16/12/2026). Sempre que der, buscar o revezamento quinzenal para todos.', 'Premissas JFL 5x2, item 04')}
     ${R('Intervalo para almoço', 'b', 'Jornada acima de 6h: mínimo 1h (máximo 2h). De 4h a 6h: 15 min. Conferido no cadastro do turno.', 'CLT art. 71')}
-    ${R('Jornada diária', 'b', 'Máximo 10h por dia (8h + 2h extras). Acima de 8h aparece alerta: só vale com acordo ou convenção coletiva.', 'CLT art. 59; EC 141/2026')}
+    ${R('Jornada diária', 'b', 'Padrão da 5x2: 8h24 de trabalho + 1h de intervalo (9h24 entre entrada e saída). Acima de 8h24 aparece alerta (hora extra); acima de 10h bloqueia.', 'Premissas JFL 5x2, item 01; CLT art. 59')}
     ${R('Todos os dias marcados', 'b', 'Cada pessoa precisa ter um código em todos os dias do mês: um turno ou X folga, FC compensa feriado, FP preferência de folga, XX folga aniversário, BH banco de horas, FE férias, AT atestado, F falta, NA não se aplica (antes da admissão ou depois do desligamento). Feriados aparecem destacados no topo da grade.', 'Regra do app')}
     ${R('Sexo informado', 'b', 'Necessário para aplicar a regra do domingo.', 'Regra do app')}
     ${R('Departamento fechado no domingo', 'b', 'Governança e Manutenção não funcionam aos domingos: o domingo já vem marcado como folga e não aceita turno. Muda na aba Turnos.', 'Regra da operação')}
