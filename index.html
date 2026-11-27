@@ -90,6 +90,12 @@ main{max-width:1400px;margin:0 auto;padding:20px}
 .mesnav h2 small{display:block;font-size:13px;font-weight:500;letter-spacing:0;color:var(--muted);margin-top:2px}
 .mesnav .seta{width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--brand);font-size:26px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 0 3px}
 .mesnav .seta:hover{border-color:var(--brand)}
+.navmini{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0}
+.navmini b{font-size:15px;letter-spacing:.06em}
+.navmini .grow{flex:1}
+.navmini .folgasprev{margin:0;font-size:13px}
+.navmini .seta{width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--line);color:var(--brand);font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0 0 3px}
+.navmini .seta:hover{border-color:var(--brand)}
 @media(max-width:560px){ .mesnav{gap:10px} .mesnav h2{font-size:18px;min-width:0} }
 .deps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .dep{background:var(--card);border:1px solid var(--line);padding:8px 14px;text-align:left;color:var(--ink);min-width:150px}
@@ -328,7 +334,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v15';
+const VERSAO = 'v16';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -1003,8 +1009,11 @@ function renderEscala(){
   }
 
   // Grade no formato da planilha
-  h += `<div class="folgasprev">${esc(folgasPrevistas().texto)}</div>`;
+  // Setas do período coladas na grade (em cima e embaixo), para não precisar subir a tela
+  const navMini = (lado) => `<div class="navmini"><button class="seta" data-ir="-1" aria-label="Período anterior">‹</button><b>${esc(nomePer(MES).toUpperCase())}</b><span class="hint">${datasPer(MES)}</span><button class="seta" data-ir="1" aria-label="Próximo período">›</button>${lado === 'cima' ? `<span class="grow"></span><span class="folgasprev">${esc(folgasPrevistas().texto)}</span>` : ''}</div>`;
+  h += navMini('cima');
   h += `<div class="wrap" id="wrap">${tabelaEscala({ ed, marcas: true })}</div>`;
+  h += navMini('baixo');
 
   // Legenda, como a da planilha
   const fers = V.dias.filter(d => FERIADOS[d]);
@@ -1037,6 +1046,7 @@ function ligarEscala(){
   document.querySelectorAll('.dep').forEach(b => b.onclick = () => b.dataset.dep !== DEP && trocarDep(b.dataset.dep));
   const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
   on('mPrev', () => irMes(-1)); on('mNext', () => irMes(1));
+  document.querySelectorAll('.navmini [data-ir]').forEach(b => b.onclick = () => irMes(+b.dataset.ir));
   on('bEnviar', enviar); on('bAprovar', () => acao('aprovar')); on('bDevolver', devolver); on('bReabrir', reabrir);
   on('bImprimir', () => imprimir()); on('bImagem', () => imagem()); on('bExcel', baixarExcel); on('bRepetir', repetirSemana); on('bLimpar', limpar);
   const pal = $('#paleta');
