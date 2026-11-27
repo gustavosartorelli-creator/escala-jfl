@@ -104,3 +104,12 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Cadastrar Recepção e Manutenção (nomes, cargo, sexo) e informar o sexo de todos na Governança.
 - Acessos que faltam: Recepção dos outros prédios (gerente assistente), Manutenção dos outros prédios, Gerente Geral do JML (hoje o Gustavo, admin).
 - Feriados (não tratados ainda) e conferir a convenção do Sindifícios (domingo para homens, banco de horas, ampliação da jornada diária).
+
+## Atualizações de 27/11/2026
+- **Recepção do JML** (imagens que o Gustavo mandou): Marlon Ribeiro (Sr., I), Yasmin Cubas, Ingridy Ribeiro (Jr., M), Mayara Gesteira, Lucas Henrique (Jr., T);
+  dezembro e janeiro transcritos como rascunho. Turnos da Recepção a partir de 16/12/2026 (8h24 + 1h): **M 07:00–16:24** (sáb/dom 08:00–17:24; fica a mais),
+  **I 09:56–19:20** (entra mais cedo), **T 12:36–22:00** (entra mais cedo); até 15/12 os horários antigos.
+- Coluna HORÁRIO = horário cadastrado da pessoa (	urno_padrao); célula em branco/verde = esse turno (também no fim de semana).
+- **Excel** (botão ao lado de Imagem e PDF): aixarExcel() monta a mesma grade de 	abelaEscala() com cores, via xlsx-js-style@1.2.0 (jsdelivr, carregado só ao usar).
+- Acessos: Sara (Analista Administrativa, só consulta JML, PIN do Orçamento); Rafaela (Superintendente de Operações, aprova, todos os prédios, PIN da Governança);
+  Rodrigo Pazetto (só consulta JML, PIN da Governança). Eva mantém o PIN da Governança.

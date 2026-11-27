@@ -309,7 +309,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v13';
+const VERSAO = 'v14';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -807,6 +807,9 @@ function corteDoMes(){
 function horariosPessoa(f, corte){
   const partes = corte ? [[MES, addDias(corte, -1)], [corte, fimPer(MES)]] : [[MES, fimPer(MES)]];
   return partes.map(([a, b]) => {
+    // Primeiro o horário cadastrado da pessoa (como a coluna HORÁRIO da planilha); senão, o mais usado no período
+    const tp = f.turno_padrao && (turnoEm(f.turno_padrao, b) || turnoEm(f.turno_padrao, a));
+    if (tp) return horaLonga(tp, vale(tp, b) ? (dow(b) % 6 ? b : addDias(b, -2)) : a);
     const n = {};
     for (let d = a; d <= b; d = addDias(d, 1)) {
       const c = (GRADE[f.id] || {})[d], t = c && !OUTROS[c] && turnoEm(c, d);
@@ -825,7 +828,7 @@ function celInfo(f, d, hor, corte){
   if (OUTROS[c]) return { c, txt: c, cls: OUTROS[c].cls };
   const t = turnoEm(c, d);
   if (!t) return { c, txt: '?', cls: 'kFA' };
-  const padrao = horaLonga(t, d) === hor[corte && d >= corte ? 1 : 0];
+  const padrao = (f.turno_padrao && t.sigla === f.turno_padrao) || horaLonga(t, d) === hor[corte && d >= corte ? 1 : 0];
   return { c, txt: padrao && celulaEstilo(DEP) === 'vazio' ? '' : horaCurta(t, d), cls: padrao ? 'kpad' : 'kout', padrao };
 }
 // Sigla que dá o horário da pessoa naquele dia (para o botão "Trabalha")
@@ -958,7 +961,7 @@ function renderEscala(){
   if (st === 'enviada' && podeAprovar()) acts.push(`<button class="btn ok" id="bAprovar">Aprovar</button><button class="btn danger" id="bDevolver">Devolver</button>`);
   if (['enviada', 'aprovada'].includes(st) && podeMontar(DEP)) acts.push(`<button class="btn sec" id="bReabrir">Reabrir para editar</button>`);
   h += `<div class="toolbar"><span class="hint grow" id="salvoInfo"></span>${acts.join('')}
-    <button class="btn sec" id="bImagem">Imagem (WhatsApp)</button><button class="btn sec" id="bImprimir">Imprimir / PDF</button></div>`;
+    <button class="btn sec" id="bImagem">Imagem (WhatsApp)</button><button class="btn sec" id="bImprimir">Imprimir / PDF</button><button class="btn sec" id="bExcel">Excel</button></div>`;
 
   // Paleta: horário da pessoa, outros horários (escritos como na planilha) e os códigos da equipe
   if (ed && V.funcs.length) {
@@ -1015,7 +1018,7 @@ function ligarEscala(){
   const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
   on('mPrev', () => irMes(-1)); on('mNext', () => irMes(1));
   on('bEnviar', enviar); on('bAprovar', () => acao('aprovar')); on('bDevolver', devolver); on('bReabrir', reabrir);
-  on('bImprimir', imprimir); on('bImagem', imagem); on('bRepetir', repetirSemana); on('bLimpar', limpar);
+  on('bImprimir', imprimir); on('bImagem', imagem); on('bExcel', baixarExcel); on('bRepetir', repetirSemana); on('bLimpar', limpar);
   const pal = $('#paleta');
   if (pal) pal.onclick = e => { const b = e.target.closest('.pc'); if (!b) return; PINCEL = b.dataset.k; store.set('pincel', PINCEL); pal.querySelectorAll('.pc').forEach(x => x.classList.toggle('on', x === b)); };
   const g = $('#grade');
@@ -1140,6 +1143,53 @@ async function imprimir(){
   await salvarAgora();
   temaAntesDeImprimir = document.documentElement.dataset.theme; document.documentElement.dataset.theme = 'light';
   montarExport(); setTimeout(() => window.print(), 50);
+}
+/* Excel: a mesma grade da tela (seções, HORÁRIO, dias, códigos, totais), com as cores da planilha. Usa xlsx-js-style (SheetJS com estilos). */
+const XLSX_URL = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+function carregarXlsx(){ return new Promise((ok, err) => { if (window.XLSX) return ok(); const s = document.createElement('script'); s.src = XLSX_URL; s.onload = ok; s.onerror = () => err(new Error('Sem conexão para gerar o Excel')); document.head.appendChild(s); }); }
+async function baixarExcel(){
+  await salvarAgora();
+  try { await carregarXlsx(); } catch (e) { toast(e.message, true); return; }
+  V = validar();
+  const div = document.createElement('div'); div.innerHTML = tabelaEscala({ ed: false, marcas: false });
+  const table = div.querySelector('table'), st = E.escala ? E.escala.status : 'nova';
+  const titulo = `ESCALA ${nomePredio().toUpperCase()} · ${DEPTOS[DEP].toUpperCase()} · ${nomePer(MES).toUpperCase()} (${datasPer(MES)})`;
+  const sub = st === 'aprovada' ? `Aprovada por ${E.escala.aprovada_por} em ${quando(E.escala.aprovada_em)}` : st === 'enviada' ? 'AGUARDANDO APROVAÇÃO' : 'RASCUNHO · NÃO APROVADA';
+  const aoa = [[titulo], [sub], [folgasPrevistas().texto], []], cls = [[], [], [], []];
+  for (const tr of table.rows) {
+    const linha = [], cl = [];
+    for (const c of tr.cells) {
+      const b = c.querySelector('b');
+      let v = b ? `${c.firstChild.textContent.trim()}\n${b.textContent.trim()}` : c.textContent.replace(/\s*sexo\?\s*/, '').trim();
+      if (/^\d+$/.test(v) && (c.classList.contains('res') || tr.parentNode.tagName === 'TFOOT')) v = +v;
+      linha.push(v); cl.push({ c: [...c.classList], th: c.tagName === 'TH', secao: tr.classList.contains('secao'), head: tr.parentNode.tagName === 'THEAD', foot: tr.parentNode.tagName === 'TFOOT' });
+    }
+    aoa.push(linha); cls.push(cl);
+  }
+  aoa.push([]); aoa.push([`Legenda: ${celulaEstilo(DEP) === 'vazio' ? 'em branco = trabalha no horário da pessoa' : 'verde-claro = horário da pessoa'} · ${Object.entries(OUTROS).filter(([k]) => k !== 'NA').map(([k, o]) => `${k} = ${o.nome.toLowerCase()}`).join(' · ')}`]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const COR = { kpad: 'E3F1DA', kFE: 'DDF0F4', kAF: 'FBE9D9', kFA: 'FBE4E1', fer: 'FCE3CF', fds: 'E6ECF2', fok: 'E4F0DE', fmenos: 'FFF5CC' };
+  const borda = { style: 'thin', color: { rgb: 'BBBBBB' } };
+  aoa.forEach((linha, r) => linha.forEach((v, c) => {
+    const ref = XLSX.utils.encode_cell({ r, c }); if (!ws[ref]) return;
+    const k = (cls[r] || [])[c];
+    if (!k) { ws[ref].s = { font: { bold: r === 0, sz: r === 0 ? 14 : 11, color: { rgb: r === 1 && st !== 'aprovada' ? 'B3261E' : '111111' } } }; return; }
+    const cor = ['kpad', 'kFE', 'kAF', 'kFA', 'fok', 'fmenos', 'fer', 'fds'].map(x => k.c.includes(x) && COR[x]).find(Boolean)
+      || (k.secao ? 'F6ECE7' : k.head || k.foot ? 'F4F1EC' : null);
+    ws[ref].s = {
+      alignment: { horizontal: k.c.includes('nome') ? 'left' : 'center', vertical: 'center', wrapText: true },
+      font: { bold: k.th || k.secao || k.head || (typeof v === 'string' && v.length <= 3 && !k.c.includes('hor')), color: { rgb: k.secao && k.c.includes('nome') ? '8E4E38' : '111111' }, sz: 10 },
+      border: { top: borda, bottom: borda, left: k.c.includes('seg') ? { style: 'medium', color: { rgb: '666666' } } : borda, right: borda },
+      ...(cor ? { fill: { patternType: 'solid', fgColor: { rgb: cor } } } : {})
+    };
+  }));
+  const nDias = V.dias.length, corte = corteDoMes() ? 1 : 0, larga = celulaEstilo(DEP) === 'horario';
+  ws['!cols'] = [{ wch: 22 }, { wch: 15 }].concat(corte ? [{ wch: 15 }] : [], Array(nDias).fill({ wch: larga ? 8 : 5 }), [{ wch: 6 }, { wch: 7 }], Array(20).fill({ wch: 5 }));
+  ws['!rows'] = aoa.map((l, r) => (cls[r] && cls[r][0] && (cls[r][0].head || cls[r][0].secao)) ? { hpt: 26 } : {});
+  ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 12 } }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, (DEPTOS[DEP] + ' ' + MES.slice(0, 7)).slice(0, 31));
+  XLSX.writeFile(wb, `escala-${DEP}-${PREDIO}-${MES}.xlsx`);
 }
 function carregarScript(src){ return new Promise((ok, err) => { if (window.html2canvas) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => err(new Error('Sem conexão para gerar a imagem')); document.head.appendChild(s); }); }
 async function imagem(){
