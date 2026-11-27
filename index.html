@@ -167,6 +167,25 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 .grade.larga td.c{min-width:60px;font-size:11px}
 .grade td.c.kout{font-size:11px}
 .folgasprev{font-size:14px;font-weight:600;margin:0 2px 8px}
+/* Portaria */
+.portaria{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.pdia{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.pdia-t{background:var(--head);color:#fff;font-weight:700;font-size:13px;letter-spacing:.08em;padding:8px 12px}
+.pper{background:var(--brand-bg);color:var(--brand);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;padding:5px 12px}
+.ptab{width:100%;border-collapse:collapse;font-size:14px;table-layout:fixed}
+.ptab td:nth-child(1){width:26%} .ptab td:nth-child(2){width:34%} .ptab td:nth-child(3){width:18%}
+.ptab td{padding:7px 12px;border-top:1px solid var(--line);vertical-align:top}
+.ptab .pn{font-weight:700;white-space:nowrap}
+.ptab .ph{white-space:nowrap;font-weight:600}
+.ptab .po{color:var(--muted);font-size:13px}
+.ptab-ed{overflow:auto;border:1px solid var(--line);border-radius:var(--r)}
+.ptab-ed table{border-collapse:collapse;font-size:13px;width:100%}
+.ptab-ed th{background:var(--card-2);text-align:left;padding:6px;font-size:11px;color:var(--muted);text-transform:uppercase}
+.ptab-ed td{padding:3px;border-top:1px solid var(--line)}
+.ptab-ed input,.ptab-ed select{width:100%;min-width:90px;border:1px solid var(--line);border-radius:3px;padding:5px;background:var(--field);color:var(--ink);font-size:13px}
+#exportar .portaria{grid-template-columns:repeat(2,minmax(320px,1fr))}
+#exportar .ptab td{border:0;border-top:1px solid #ddd;text-align:left}
+#exportar .pdia-t{background:#8E4E38;color:#fff}
 .grade td.res.fok{background:var(--ok-bg);color:var(--ok);font-weight:700}
 .grade td.res.fmenos{background:var(--warn-bg);color:var(--warn);font-weight:700}
 .grade td.res.fmais{background:var(--fds2);color:var(--ink);font-weight:700}
@@ -309,7 +328,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v14';
+const VERSAO = 'v15';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -542,11 +561,12 @@ async function carregarEscala(){
 
 function render(){
   const abas = [['escala', 'Escala'], ['equipe', 'Equipe'], ['turnos', 'Turnos'], ['regras', 'Regras']];
+  abas.splice(1, 0, ['portaria', 'Portaria']);
   if (podeAprovar()) abas.push(['acessos', 'Acessos']);
   if (!abas.some(a => a[0] === ABA)) ABA = 'escala';
   $('#tabs').innerHTML = abas.map(([k, n]) => `<button data-a="${k}" class="${k === ABA ? 'on' : ''}">${n}</button>`).join('');
   $('#tabs').onclick = async e => { const a = e.target.dataset.a; if (!a) return; await salvarAgora(); ABA = a; store.set('aba', a); render(); };
-  ({ escala: renderEscala, equipe: renderEquipe, turnos: renderTurnos, regras: renderRegras, acessos: renderAcessos })[ABA]();
+  ({ escala: renderEscala, portaria: renderPortaria, equipe: renderEquipe, turnos: renderTurnos, regras: renderRegras, acessos: renderAcessos })[ABA]();
 }
 
 /* ================= Turnos e códigos ================= */
@@ -1018,7 +1038,7 @@ function ligarEscala(){
   const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
   on('mPrev', () => irMes(-1)); on('mNext', () => irMes(1));
   on('bEnviar', enviar); on('bAprovar', () => acao('aprovar')); on('bDevolver', devolver); on('bReabrir', reabrir);
-  on('bImprimir', imprimir); on('bImagem', imagem); on('bExcel', baixarExcel); on('bRepetir', repetirSemana); on('bLimpar', limpar);
+  on('bImprimir', () => imprimir()); on('bImagem', () => imagem()); on('bExcel', baixarExcel); on('bRepetir', repetirSemana); on('bLimpar', limpar);
   const pal = $('#paleta');
   if (pal) pal.onclick = e => { const b = e.target.closest('.pc'); if (!b) return; PINCEL = b.dataset.k; store.set('pincel', PINCEL); pal.querySelectorAll('.pc').forEach(x => x.classList.toggle('on', x === b)); };
   const g = $('#grade');
@@ -1139,10 +1159,10 @@ function montarExport(){
 }
 // Impressão e imagem sempre com as cores claras (o papel é branco)
 let temaAntesDeImprimir = null;
-async function imprimir(){
+async function imprimir(montar = montarExport){
   await salvarAgora();
   temaAntesDeImprimir = document.documentElement.dataset.theme; document.documentElement.dataset.theme = 'light';
-  montarExport(); setTimeout(() => window.print(), 50);
+  montar(); setTimeout(() => window.print(), 50);
 }
 /* Excel: a mesma grade da tela (seções, HORÁRIO, dias, códigos, totais), com as cores da planilha. Usa xlsx-js-style (SheetJS com estilos). */
 const XLSX_URL = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
@@ -1192,21 +1212,144 @@ async function baixarExcel(){
   XLSX.writeFile(wb, `escala-${DEP}-${PREDIO}-${MES}.xlsx`);
 }
 function carregarScript(src){ return new Promise((ok, err) => { if (window.html2canvas) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => err(new Error('Sem conexão para gerar a imagem')); document.head.appendChild(s); }); }
-async function imagem(){
+async function imagem(montar = montarExport, nomeArq){
   await salvarAgora();
   const tema = document.documentElement.dataset.theme;
   try {
     await carregarScript(H2C_URL);
-    document.documentElement.dataset.theme = 'light'; montarExport();
+    document.documentElement.dataset.theme = 'light'; montar();
     const canvas = await html2canvas($('#exportar'), { scale: 2, backgroundColor: '#ffffff' });
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-    const nome = `escala-${DEP}-${PREDIO}-${MES.slice(0, 7)}.png`, file = new File([blob], nome, { type: 'image/png' });
+    const nome = nomeArq || `escala-${DEP}-${PREDIO}-${MES.slice(0, 7)}.png`, file = new File([blob], nome, { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'Escala' }); } catch {} }
     else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }
   } catch (e) { toast(e.message, true); }
   finally { aplicarTema(tema); $('#exportar').innerHTML = ''; }
 }
 window.addEventListener('afterprint', () => { $('#exportar').innerHTML = ''; if (temaAntesDeImprimir) { aplicarTema(temaAntesDeImprimir); temaAntesDeImprimir = null; } });
+
+/* ================= Aba Portaria (terceirizada) =================
+   A empresa manda só a escala dos fins de semana (Word/texto). A Sara importa toda semana; todos veem e divulgam.
+   Sem regras: é só a lista de quem está de plantão. */
+let PORT_SAB = null;   // sábado do fim de semana mostrado
+const proxSabado = iso => { const w = dow(iso); return w === 6 ? iso : w === 0 ? addDias(iso, -1) : addDias(iso, 6 - w); };
+const MESES_NUM = { janeiro: 1, fevereiro: 2, marco: 3, abril: 4, maio: 5, junho: 6, julho: 7, agosto: 8, setembro: 9, outubro: 10, novembro: 11, dezembro: 12 };
+const semAcento = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const DIA_NOME = d => `${SEM_NOME[dow(d)]}, ${+d.slice(8)} de ${MESES[+d.slice(5, 7) - 1]}`;
+const janelaPort = sab => [addDias(sab, -1), addDias(sab, 2)];   // sexta a segunda (pega feriado colado)
+
+async function renderPortaria(){
+  if (!PORT_SAB) PORT_SAB = proxSabado(hojeISO());
+  const [de, ate] = janelaPort(PORT_SAB), dom = addDias(PORT_SAB, 1);
+  $('#conteudo').innerHTML = '<div class="empty">Carregando…</div>';
+  let r;
+  try { r = await rpc('esc_portaria_listar', { p_pin: S.pin, p_predio: PREDIO, p_de: de, p_ate: ate }); }
+  catch (e) { $('#conteudo').innerHTML = `<div class="empty">${esc(e.message)}</div>`; return; }
+  let h = `<div class="mesnav"><button class="seta" id="pPrev" aria-label="Fim de semana anterior">‹</button>
+    <h2>FIM DE SEMANA<small>${ddmm(PORT_SAB)} e ${ddmm(dom)}/${dom.slice(0, 4)}</small></h2>
+    <button class="seta" id="pNext" aria-label="Próximo fim de semana">›</button></div>
+    <div class="toolbar"><span class="hint grow">Portaria terceirizada: plantão dos fins de semana, enviado pela empresa.${r.atualizado ? ` Importado por ${esc(r.atualizado.por)} em ${quando(r.atualizado.em)}.` : ''}</span>
+    ${S.user.portaria ? '<button class="btn" id="pImp">Importar escala</button>' : ''}
+    ${r.linhas.length ? '<button class="btn sec" id="pImg">Imagem (WhatsApp)</button><button class="btn sec" id="pPrint">Imprimir / PDF</button>' : ''}</div>`;
+  h += r.linhas.length ? `<div class="portaria">${portariaHTML(r.linhas)}</div>`
+    : `<div class="empty"><div class="ttl">Sem escala da portaria</div>${S.user.portaria ? 'Use “Importar escala” com o arquivo que a empresa mandou.' : 'A escala deste fim de semana ainda não foi importada.'}</div>`;
+  const futuros = (r.datas || []).filter(d => d > ate);
+  if (futuros.length) h += `<p class="hint">Também há escala importada para: ${[...new Set(futuros.map(proxSabado))].map(s => `${ddmm(s)}`).join(', ')}.</p>`;
+  $('#conteudo').innerHTML = h;
+  $('#pPrev').onclick = () => { PORT_SAB = addDias(PORT_SAB, -7); renderPortaria(); };
+  $('#pNext').onclick = () => { PORT_SAB = addDias(PORT_SAB, 7); renderPortaria(); };
+  const on = (id, fn) => { const b = $('#' + id); if (b) b.onclick = fn; };
+  on('pImp', importarPortaria);
+  const montar = () => { $('#exportar').innerHTML = `<h2 class="mes">PORTARIA · FIM DE SEMANA ${ddmm(PORT_SAB)} E ${ddmm(dom)}</h2><h2>${esc(nomePredio())} · plantão</h2><div class="sub">&nbsp;</div><div class="portaria">${portariaHTML(r.linhas)}</div>`; };
+  on('pImg', () => imagem(montar, `portaria-${PREDIO}-${PORT_SAB}.png`));
+  on('pPrint', () => imprimir(montar));
+}
+function portariaHTML(linhas){
+  const dias = [...new Set(linhas.map(l => l.data))].sort();
+  return dias.map(d => {
+    const ls = linhas.filter(l => l.data === d);
+    return `<div class="pdia"><div class="pdia-t">${esc(DIA_NOME(d).toUpperCase())}${FERIADOS[d] ? ` · ${esc(FERIADOS[d])}` : ''}</div>${['diurno', 'noturno'].map(p => {
+      const x = ls.filter(l => l.periodo === p); if (!x.length) return '';
+      return `<div class="pper">${p === 'diurno' ? 'Diurno' : 'Noturno'}</div><table class="ptab">${x.map(l => `<tr><td class="pn">${esc(l.nome || '—')}</td><td>${esc(l.posto || '')}</td><td class="ph">${esc(l.horario || '')}</td><td class="po">${esc(l.obs || '')}</td></tr>`).join('')}</table>`;
+    }).join('')}</div>`;
+  }).join('');
+}
+
+// Lê o texto do arquivo da empresa: "Sábado dia 28 de novembro (diurno)", "Equipe (Noturna)", "Nome: posto 06h/18h", "Nome - posto - 20hrs/ 8 hrs"
+function lerPortaria(texto){
+  const linhas = texto.split(/\r?\n/).map(l => l.replace(/[_\t]+/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean);
+  const hoje = hojeISO(), out = []; let data = null, periodo = 'diurno';
+  for (const l of linhas) {
+    const n = semAcento(l);
+    const m = n.match(/(\d{1,2})\s*(?:de\s+)?(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/);
+    if (m && /(sabado|domingo|segunda|terca|quarta|quinta|sexta|feriado|dia)/.test(n)) {
+      const mes = MESES_NUM[m[2]]; let ano = +hoje.slice(0, 4);
+      if (mes < +hoje.slice(5, 7) - 6) ano++; else if (mes > +hoje.slice(5, 7) + 6) ano--;
+      data = `${ano}-${String(mes).padStart(2, '0')}-${String(+m[1]).padStart(2, '0')}`;
+      periodo = /notur/.test(n) ? 'noturno' : 'diurno';
+      continue;
+    }
+    if (/^equipe\b/.test(n) || /^\(?\s*(diurn|notur)/.test(n)) { periodo = /notur/.test(n) ? 'noturno' : 'diurno'; continue; }
+    if (!data) continue;
+    const s = l.match(/^(.*?)\s*(?::|;|\s[-–]\s)\s*(.*)$/);
+    if (!s) continue;
+    const a = s[1].trim(), b = s[2].trim();
+    const hr = b.match(/\d{1,2}\s*h(?:rs?)?\s*(?:\d{2})?\s*[\/\-–]\s*\d{1,2}\s*h?(?:rs?)?.*$/i);
+    const posto = (hr ? b.slice(0, hr.index) : b).replace(/[\s\-–,]+$/, '').trim();
+    const cap = t => t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+    if (/^(estacionamento|portaria|vigilan|porteiro|recep)/i.test(semAcento(a)) && !hr) out.push({ data, periodo, nome: '', posto: cap(a), horario: '', obs: b });
+    else out.push({ data, periodo, nome: a, posto: cap(posto), horario: hr ? hr[0].trim() : '', obs: '' });
+  }
+  return out;
+}
+const MAMMOTH_URL = 'https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js';
+function carregarMammoth(){ return new Promise((ok, err) => { if (window.mammoth) return ok(); const s = document.createElement('script'); s.src = MAMMOTH_URL; s.onload = ok; s.onerror = () => err(new Error('Sem conexão para ler o Word')); document.head.appendChild(s); }); }
+
+function importarPortaria(){
+  const ov = modal(`<h3>Importar escala da Portaria</h3>
+    <div class="hint">Escolha o arquivo Word que a empresa mandou, ou copie o texto dele e cole abaixo. Confira e corrija antes de salvar. Os dias importados substituem o que já havia nesses dias.</div>
+    <label class="fld">Arquivo (Word .docx ou texto .txt)<input type="file" id="pArq" accept=".docx,.txt"></label>
+    <label class="fld">Ou cole o texto<textarea id="pTxt" rows="6" placeholder="Sábado dia 28 de novembro (diurno)&#10;Estefani: Portaria 06h/18h&#10;..."></textarea></label>
+    <div class="acts" style="justify-content:flex-start"><button class="btn sec" id="pLer">Ler</button></div>
+    <div id="pPrevia"></div>`);
+  ov.querySelector('.md').style.maxWidth = '900px';
+  let linhas = [];
+  const desenhar = () => {
+    const el = ov.querySelector('#pPrevia');
+    if (!linhas.length) { el.innerHTML = '<div class="hint" style="margin-top:12px">Nada lido ainda.</div>'; return; }
+    el.innerHTML = `<div class="sec-t">Conferir (${linhas.length} linhas)</div><div class="ptab-ed"><table>
+      <tr><th>Data</th><th>Período</th><th>Nome</th><th>Posto</th><th>Horário</th><th>Obs.</th><th></th></tr>
+      ${linhas.map((l, i) => `<tr data-i="${i}"><td><input type="date" data-k="data" value="${l.data}"></td>
+        <td><select data-k="periodo"><option value="diurno" ${l.periodo === 'diurno' ? 'selected' : ''}>Diurno</option><option value="noturno" ${l.periodo === 'noturno' ? 'selected' : ''}>Noturno</option></select></td>
+        <td><input data-k="nome" value="${esc(l.nome)}"></td><td><input data-k="posto" value="${esc(l.posto)}"></td>
+        <td><input data-k="horario" value="${esc(l.horario)}" style="width:110px"></td><td><input data-k="obs" value="${esc(l.obs)}"></td>
+        <td><button class="btn link" data-del="${i}" title="Tirar">✕</button></td></tr>`).join('')}</table></div>
+      <div class="acts"><button class="btn link" id="pMais">+ linha</button><span class="grow"></span><button class="btn" id="pSalvar">Salvar</button></div>`;
+    el.querySelectorAll('[data-k]').forEach(inp => inp.oninput = inp.onchange = () => { linhas[+inp.closest('tr').dataset.i][inp.dataset.k] = inp.value; });
+    el.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { linhas.splice(+b.dataset.del, 1); desenhar(); });
+    el.querySelector('#pMais').onclick = () => { const u = linhas[linhas.length - 1]; linhas.push({ data: u ? u.data : PORT_SAB, periodo: u ? u.periodo : 'diurno', nome: '', posto: '', horario: '', obs: '' }); desenhar(); };
+    el.querySelector('#pSalvar').onclick = async () => {
+      if (linhas.some(l => !l.data)) { toast('Falta a data em alguma linha', true); return; }
+      try {
+        const r = await rpc('esc_portaria_salvar', { p_pin: S.pin, p_predio: PREDIO, p_linhas: linhas });
+        ov.remove(); toast(`${r.linhas} linhas salvas`);
+        PORT_SAB = proxSabado(linhas.map(l => l.data).sort()[0]); renderPortaria();
+      } catch (e) { toast(e.message, true); }
+    };
+  };
+  ov.querySelector('#pLer').onclick = async () => {
+    let texto = ov.querySelector('#pTxt').value;
+    const f = ov.querySelector('#pArq').files[0];
+    try {
+      if (f && /\.docx$/i.test(f.name)) { await carregarMammoth(); texto = (await mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() })).value + '\n' + texto; }
+      else if (f) texto = (await f.text()) + '\n' + texto;
+    } catch (e) { toast(e.message, true); return; }
+    linhas = lerPortaria(texto);
+    if (!linhas.length) toast('Não reconheci nenhuma linha. Confira se o texto tem o dia ("Sábado dia 28 de novembro") e "Nome: posto horário".', true);
+    desenhar();
+  };
+  desenhar();
+}
 
 /* ================= Aba Equipe ================= */
 function renderEquipe(){
@@ -1395,6 +1538,7 @@ function editarUsuario(u){
     <label class="fld">Perfil<select id="uP">${papeis.map(([k, n]) => `<option value="${k}" ${k === u.papel ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <label class="fld" id="uDw">Departamento<select id="uD">${Object.entries(DEPTOS).map(([k, n]) => `<option value="${k}" ${k === u.departamento ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <label class="fld">PIN (4 dígitos)${u.id ? ' · deixe em branco para manter' : ''}<input id="uPin" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+    <label class="chk"><input type="checkbox" id="uPort" ${u.portaria ? 'checked' : ''}> Importa a escala da Portaria (Gerente Geral e administração já importam)</label>
     ${u.id ? `<label class="chk"><input type="checkbox" id="uA" ${u.ativo ? 'checked' : ''}> Ativo</label>` : ''}
     <div class="hint" style="margin-top:8px">Novo acesso fica no prédio ${esc(nomePredio())}.</div>
     <div class="acts"><button class="btn" id="ok">Salvar</button></div>`);
@@ -1404,7 +1548,7 @@ function editarUsuario(u){
     const pin = ov.querySelector('#uPin').value.trim(), pp = ov.querySelector('#uP').value;
     if (pin && !/^\d{4}$/.test(pin)) { toast('O PIN tem 4 dígitos', true); return; }
     const p = { id: u.id || null, nome: ov.querySelector('#uN').value, titulo: ov.querySelector('#uT').value, papel: pp,
-      departamento: pp === 'montador' ? ov.querySelector('#uD').value : '', pin, ativo: u.id ? ov.querySelector('#uA').checked : true };
+      departamento: pp === 'montador' ? ov.querySelector('#uD').value : '', pin, ativo: u.id ? ov.querySelector('#uA').checked : true, portaria: ov.querySelector('#uPort').checked };
     if (!p.nome.trim()) { toast('Informe o nome', true); return; }
     try { await rpc('esc_usuario_salvar', { p_pin: S.pin, p_predio: PREDIO, p }); ov.remove(); toast('Salvo'); renderAcessos(); }
     catch (e) { toast(e.message, true); }

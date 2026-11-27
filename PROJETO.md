@@ -113,3 +113,10 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - **Excel** (botão ao lado de Imagem e PDF): aixarExcel() monta a mesma grade de 	abelaEscala() com cores, via xlsx-js-style@1.2.0 (jsdelivr, carregado só ao usar).
 - Acessos: Sara (Analista Administrativa, só consulta JML, PIN do Orçamento); Rafaela (Superintendente de Operações, aprova, todos os prédios, PIN da Governança);
   Rodrigo Pazetto (só consulta JML, PIN da Governança). Eva mantém o PIN da Governança.
+## Portaria (27/11/2026)
+- Aba **Portaria**: a portaria é terceirizada e a empresa manda só a escala dos **fins de semana** (Word). Mostra sexta a segunda em volta do sábado
+  escolhido (setas por fim de semana), por dia e período (diurno/noturno): nome, posto, horário, observação. Imagem (WhatsApp) e impressão. Sem regras.
+- Quem importa: esc_usuarios.portaria (Sara) + admin e aprovador. Importar: arquivo .docx (lido com mammoth 1.6.0 do cdnjs) ou texto colado;
+  lerPortaria() reconhece "Sábado dia 28 de novembro (diurno)", "Equipe (Noturna)", "Nome: posto 06h/18h", "Nome - posto - 20hrs/ 8 hrs",
+  "Estacionamento: não informado" (vira posto + observação). Prévia editável antes de salvar; os dias importados substituem os anteriores.
+- Tabela esc_portaria; RPCs esc_portaria_listar e esc_portaria_salvar (sql/2026-11-27_portaria.sql). Fim de semana 28–29/11/2026 já gravado (imagem do Gustavo).
