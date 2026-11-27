@@ -124,3 +124,4 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Setas do período também logo acima e abaixo da grade (`navMini`).
 
 - **Janeiro numa escala só** (27/11/2026): transição = dezembro (01–31/12), janeiro (01–31/01), fevereiro curto (01–15/02); 16 → 15 a partir de 16/02/2027 (sql/2026-11-27_janeiro_inteiro.sql; `PER_ESPECIAIS`). Recepção: intermediário a partir de 16/12 = 09:36–19:00; ordem Yasmin, Ingridy, Marlon, Mayara, Lucas.
+- Rodapé Manhã/Inter/Tarde: o período do turno vem do **nome** (Manhã / Inter / Tarde) e, se o nome não disser, da hora de entrada (`periodoDe` em `tabelaEscala`). Necessário porque a tarde da Recepção entra 12:36 e o intermediário 09:36.

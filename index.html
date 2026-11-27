@@ -334,7 +334,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v18';
+const VERSAO = 'v19';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -946,7 +946,12 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
     }
   }
   // Rodapé como o da planilha: quantos por período e no dia
-  const periodoDe = (t, d) => { const ini = jornada(t, d).ini % 1440; return PERIODOS.findIndex(p => ini >= p[1] && ini < p[2]); };
+  // Período do turno: pelo nome (Manhã / Inter / Tarde), senão pela hora de entrada (até 9h59, 10h–12h59, a partir de 13h)
+  const periodoDe = (t, d) => {
+    const nm = semAcento(t.nome || '');
+    if (/manh/.test(nm)) return 0; if (/inter/.test(nm)) return 1; if (/tarde|noit/.test(nm)) return 2;
+    const ini = jornada(t, d).ini % 1440; return PERIODOS.findIndex(p => ini >= p[1] && ini < p[2]);
+  };
   const temPer = PERIODOS.map((p, i) => versoesDoDep(DEP, MES, fimPer(MES)).some(t => periodoDe(t, t.desde || MES) === i));
   const linhas = PERIODOS.map((p, i) => [p[0], i]).filter((_, i) => temPer[i]).concat([['Total no dia', -1]]);
   h += `</tbody><tfoot>`;
