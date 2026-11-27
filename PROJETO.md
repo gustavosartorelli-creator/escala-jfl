@@ -131,4 +131,4 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Banco: `esc_ping` (Realtime, leitura anon como `gov_ping`) + gatilhos; `esc_salvar_mudancas` aplica só as células mudadas e devolve a grade combinada
   (sql/2026-11-27_tempo_real.sql). `esc_salvar` (grade inteira) não é mais usado pelo app.
 - App: `BASE` = última grade do servidor; salva `diferenca(GRADE, BASE)`; `EDIT` guarda o que a pessoa mexeu de verdade (o preenchimento automático
-  não conta) para não sobrescrever a mudança de outra pessoa; `ligarTempoReal`/`tratarAvisos`/`atualizarEscalaRemota`. Ao voltar para a aba, busca de novo.
+  não conta) para não sobrescrever a mudança de outra pessoa; `ligarTempoReal`/`tratarAvisos`/`atualizarEscalaRemota`. Ao voltar para a aba, busca de novo.- O app confere a versão publicada a cada minuto e ao voltar para a aba (`conferirVersao`) e recarrega sozinho; o canal de tempo real é religado se cair. A RPC antiga `esc_salvar` agora recusa com 'recarregue a página' (a versão antiga salvava a grade inteira e podia apagar mudanças de outra pessoa).
