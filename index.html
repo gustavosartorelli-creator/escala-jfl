@@ -334,7 +334,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v19';
+const VERSAO = 'v20';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -543,7 +543,8 @@ async function carregar(){
       rpc('esc_escala', { p_pin: S.pin, p_predio: PREDIO, p_dep: DEP, p_mes: MES })
     ]);
   } catch (e) { $('#conteudo').innerHTML = `<div class="empty"><div class="ttl">Não foi possível carregar</div>${esc(e.message)}</div>`; return; }
-  GRADE = JSON.parse(JSON.stringify((E.escala && E.escala.grade) || {}));
+  BASE = copia(E.escala && E.escala.grade); GRADE = copia(BASE);
+  if (!canalRT || canalRT.topic !== 'realtime:esc-' + PREDIO) ligarTempoReal();
   render();
 }
 // Setas do mês: anda um mês e, se ele não estiver na lista do topo, acrescenta
@@ -561,7 +562,7 @@ async function carregarEscala(){
   try {
     [E, D] = await Promise.all([rpc('esc_escala', { p_pin: S.pin, p_predio: PREDIO, p_dep: DEP, p_mes: MES }), rpc('esc_dados', { p_pin: S.pin, p_predio: PREDIO, p_mes: MES })]);
   } catch (e) { toast(e.message, true); return; }
-  GRADE = JSON.parse(JSON.stringify((E.escala && E.escala.grade) || {}));
+  BASE = copia(E.escala && E.escala.grade); GRADE = copia(BASE);
   render();
 }
 
@@ -1079,6 +1080,7 @@ function ligarEscala(){
     GRADE[f] = GRADE[f] || {};
     if ((GRADE[f][d] || '') === cod) return;
     if (cod) GRADE[f][d] = cod; else delete GRADE[f][d];
+    marcarEdit(f, d);
     const t = cod && !OUTROS[cod] && turnoEm(cod, d);
     td.textContent = PINCEL === '*' && celulaEstilo(DEP) === 'vazio' ? '' : t ? horaCurta(t, d) : cod;
     td.className = `c ${PINCEL === '*' ? 'kpad' : t ? 'kout' : cod ? OUTROS[cod].cls : 'vazio'} ${[0, 6].includes(dow(d)) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${dow(d) === 0 ? 'seg' : ''}`;
@@ -1105,23 +1107,91 @@ function mostrarSalvo(){
   const el = $('#salvoInfo'); if (!el) return;
   el.textContent = sujo ? 'Salvando…' : ultimoSalvo ? `Salvo às ${ultimoSalvo}` : '';
 }
+/* Salva só as células que mudaram desde a última versão do servidor (BASE), para duas pessoas editarem juntas
+   sem uma apagar o que a outra fez. O servidor devolve a grade combinada. */
+let BASE = {};
+// Células que a pessoa mexeu e ainda não foram salvas (o preenchimento automático não entra aqui)
+let EDIT = new Set(), EDIT_TUDO = false;
+const marcarEdit = (f, d) => EDIT.add(f + '|' + d);
+const copia = o => JSON.parse(JSON.stringify(o || {}));
+function diferenca(a, b){
+  const mud = {};
+  for (const f of new Set([...Object.keys(a || {}), ...Object.keys(b || {})])) {
+    const x = (a || {})[f] || {}, y = (b || {})[f] || {};
+    for (const d of new Set([...Object.keys(x), ...Object.keys(y)])) {
+      if ((x[d] || '') !== (y[d] || '')) (mud[f] = mud[f] || {})[d] = x[d] || null;
+    }
+  }
+  return mud;
+}
+function aplicar(g, mud){
+  const r = copia(g);
+  for (const [f, dias] of Object.entries(mud)) {
+    r[f] = r[f] || {};
+    for (const [d, c] of Object.entries(dias)) { if (c) r[f][d] = c; else delete r[f][d]; }
+  }
+  return r;
+}
 async function salvarAgora(){
   clearTimeout(salvarT);
   if (salvando) await salvando;
   if (!sujo) return;
   sujo = false;
-  const grade = {}; for (const [f, dias] of Object.entries(GRADE)) { const x = Object.fromEntries(Object.entries(dias || {}).filter(([, c]) => c)); if (Object.keys(x).length) grade[f] = x; }
-  salvando = rpc('esc_salvar', { p_pin: S.pin, p_predio: PREDIO, p_dep: DEP, p_mes: MES, p_grade: grade, p_turnos: D.turnos })
+  const enviado = copia(GRADE), mud = diferenca(enviado, BASE);
+  if (!Object.keys(mud).length && E.escala) { mostrarSalvo(); return; }
+  const dep = DEP, mes = MES;
+  salvando = rpc('esc_salvar_mudancas', { p_pin: S.pin, p_predio: PREDIO, p_dep: dep, p_mes: mes, p_mud: mud, p_turnos: D.turnos })
     .then(r => {
       ultimoSalvo = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      if (!E.escala) { E.escala = { id: r.id, status: r.status }; D.escalas = (D.escalas || []).concat([{ id: r.id, departamento: DEP, status: r.status }]); if (ABA === 'escala') rerender(); }
-      E.escala.grade = grade;
+      if (dep !== DEP || mes !== MES) return;            // trocou de tela enquanto salvava
+      const novas = diferenca(GRADE, enviado);           // o que a pessoa mexeu enquanto salvava
+      BASE = copia(r.grade); GRADE = aplicar(r.grade, novas);
+      EDIT = new Set(Object.entries(novas).flatMap(([f, ds]) => Object.keys(ds).map(d => f + '|' + d))); EDIT_TUDO = false;
+      if (!E.escala) { E.escala = { id: r.id, status: r.status }; D.escalas = (D.escalas || []).concat([{ id: r.id, departamento: DEP, status: r.status }]); }
+      E.escala.grade = r.grade;
+      if (ABA === 'escala' && Object.keys(diferenca(GRADE, enviado)).length + Object.keys(diferenca(r.grade, enviado)).length) rerender();
       mostrarSalvo();
     })
     .catch(e => { sujo = true; toast('Não salvou: ' + e.message, true); mostrarSalvo(); })
     .finally(() => { salvando = null; });
   await salvando;
 }
+
+/* Tempo real: avisos em esc_ping (Supabase Realtime). Quem está com a mesma escala aberta recebe a mudança na hora. */
+let canalRT = null, rtT = null, rtFila = [];
+function ligarTempoReal(){
+  if (canalRT) { sb.removeChannel(canalRT); canalRT = null; }
+  canalRT = sb.channel('esc-' + PREDIO)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'esc_ping', filter: 'predio_id=eq.' + PREDIO }, p => {
+      const a = p.new; if (!a || (a.por && a.por === S.user.id && a.tipo === 'escala')) return;
+      rtFila.push(a); clearTimeout(rtT); rtT = setTimeout(tratarAvisos, 500);
+    })
+    .subscribe();
+}
+async function tratarAvisos(){
+  const avisos = rtFila; rtFila = [];
+  const daEscala = avisos.filter(a => (a.tipo === 'escala' || a.tipo === 'acao') && a.departamento === DEP && a.mes === MES);
+  const dados = avisos.some(a => a.tipo === 'dados' || a.tipo === 'acao');
+  const portaria = avisos.some(a => a.tipo === 'portaria');
+  try {
+    if (ABA === 'portaria' && portaria) { renderPortaria(); return; }
+    if (daEscala.length) await atualizarEscalaRemota(daEscala.map(a => a.por_nome).filter(Boolean).pop());
+    else if (dados) { D = await rpc('esc_dados', { p_pin: S.pin, p_predio: PREDIO, p_mes: MES }); if (ABA !== 'portaria') rerenderAba(); }
+  } catch (e) { /* sem conexão: atualiza na próxima */ }
+}
+function rerenderAba(){ if (ABA === 'escala') rerender(); else render(); }
+async function atualizarEscalaRemota(quem){
+  if (salvando) await salvando;
+  const [e2, d2] = await Promise.all([rpc('esc_escala', { p_pin: S.pin, p_predio: PREDIO, p_dep: DEP, p_mes: MES }), rpc('esc_dados', { p_pin: S.pin, p_predio: PREDIO, p_mes: MES })]);
+  // o que eu mudei de verdade e ainda não salvei (o preenchimento automático é refeito em cima do que veio do servidor)
+  const todas = diferenca(GRADE, BASE), minhas = {};
+  for (const [f, ds] of Object.entries(todas)) for (const [d, c] of Object.entries(ds)) if (EDIT_TUDO || EDIT.has(f + '|' + d)) (minhas[f] = minhas[f] || {})[d] = c;
+  E = e2; D = d2; BASE = copia(E.escala && E.escala.grade); GRADE = aplicar(BASE, minhas);
+  if (ABA === 'escala') rerender(); else render();
+  if (quem && quem !== S.user.nome) toast(`Atualizado: ${quem} mexeu nesta escala`);
+}
+// Voltou para o app (outra aba, celular desbloqueado): busca o que mudou
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S.user && ABA === 'escala' && !sujo) atualizarEscalaRemota().catch(() => {}); });
 window.addEventListener('beforeunload', e => { if (sujo) { salvarAgora(); e.preventDefault(); e.returnValue = ''; } });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') salvarAgora(); });
 
@@ -1132,11 +1202,11 @@ function repetirSemana(){
     const g = GRADE[f.id] = GRADE[f.id] || {};
     for (const d of dias.slice(7)) { const src = dias[(+d.slice(8) - 1) % 7]; if (g[src]) g[d] = g[src]; else delete g[d]; }
   }
-  mudou(); pendenteRender = false; rerender();
+  EDIT_TUDO = true; mudou(); pendenteRender = false; rerender();
 }
 function limpar(){
   if (!confirm('Apagar toda a marcação deste mês?')) return;
-  GRADE = {}; mudou(); pendenteRender = false; rerender();
+  GRADE = {}; EDIT_TUDO = true; mudou(); pendenteRender = false; rerender();
 }
 
 async function enviar(){

@@ -125,3 +125,10 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 
 - **Janeiro numa escala só** (27/11/2026): transição = dezembro (01–31/12), janeiro (01–31/01), fevereiro curto (01–15/02); 16 → 15 a partir de 16/02/2027 (sql/2026-11-27_janeiro_inteiro.sql; `PER_ESPECIAIS`). Recepção: intermediário a partir de 16/12 = 09:36–19:00; ordem Yasmin, Ingridy, Marlon, Mayara, Lucas.
 - Rodapé Manhã/Inter/Tarde: o período do turno vem do **nome** (Manhã / Inter / Tarde) e, se o nome não disser, da hora de entrada (`periodoDe` em `tabelaEscala`). Necessário porque a tarde da Recepção entra 12:36 e o intermediário 09:36.
+
+## Tempo real (27/11/2026)
+- Duas pessoas na mesma escala veem as mudanças uma da outra em ~2 s, sem atualizar o navegador (aviso "Atualizado: X mexeu nesta escala").
+- Banco: `esc_ping` (Realtime, leitura anon como `gov_ping`) + gatilhos; `esc_salvar_mudancas` aplica só as células mudadas e devolve a grade combinada
+  (sql/2026-11-27_tempo_real.sql). `esc_salvar` (grade inteira) não é mais usado pelo app.
+- App: `BASE` = última grade do servidor; salva `diferenca(GRADE, BASE)`; `EDIT` guarda o que a pessoa mexeu de verdade (o preenchimento automático
+  não conta) para não sobrescrever a mudança de outra pessoa; `ligarTempoReal`/`tratarAvisos`/`atualizarEscalaRemota`. Ao voltar para a aba, busca de novo.
