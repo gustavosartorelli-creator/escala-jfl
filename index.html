@@ -334,7 +334,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v21';
+const VERSAO = 'v22';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -1140,7 +1140,7 @@ async function salvarAgora(){
   const enviado = copia(GRADE), mud = diferenca(enviado, BASE);
   if (!Object.keys(mud).length && E.escala) { mostrarSalvo(); return; }
   const dep = DEP, mes = MES;
-  salvando = rpc('esc_salvar_mudancas', { p_pin: S.pin, p_predio: PREDIO, p_dep: dep, p_mes: mes, p_mud: mud, p_turnos: D.turnos })
+  salvando = rpc('esc_salvar_mudancas', { p_pin: S.pin, p_predio: PREDIO, p_dep: dep, p_mes: mes, p_mud: mud, p_turnos: D.turnos, p_cliente: CLIENTE })
     .then(r => {
       ultimoSalvo = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       if (dep !== DEP || mes !== MES) return;            // trocou de tela enquanto salvava
@@ -1159,11 +1159,13 @@ async function salvarAgora(){
 
 /* Tempo real: avisos em esc_ping (Supabase Realtime). Quem está com a mesma escala aberta recebe a mudança na hora. */
 let canalRT = null, rtT = null, rtFila = [];
+// Identifica esta tela (aba/aparelho): ignora só os avisos dela mesma; a mesma pessoa em outro aparelho também atualiza
+const CLIENTE = Math.random().toString(36).slice(2) + Date.now().toString(36);
 function ligarTempoReal(){
   if (canalRT) { sb.removeChannel(canalRT); canalRT = null; }
   canalRT = sb.channel('esc-' + PREDIO)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'esc_ping', filter: 'predio_id=eq.' + PREDIO }, p => {
-      const a = p.new; if (!a || (a.por && a.por === S.user.id && a.tipo === 'escala')) return;
+      const a = p.new; if (!a || (a.cliente && a.cliente === CLIENTE)) return;
       rtFila.push(a); clearTimeout(rtT); rtT = setTimeout(tratarAvisos, 500);
     })
     .subscribe();
@@ -1188,7 +1190,7 @@ async function atualizarEscalaRemota(quem){
   for (const [f, ds] of Object.entries(todas)) for (const [d, c] of Object.entries(ds)) if (EDIT_TUDO || EDIT.has(f + '|' + d)) (minhas[f] = minhas[f] || {})[d] = c;
   E = e2; D = d2; BASE = copia(E.escala && E.escala.grade); GRADE = aplicar(BASE, minhas);
   if (ABA === 'escala') rerender(); else render();
-  if (quem && quem !== S.user.nome) toast(`Atualizado: ${quem} mexeu nesta escala`);
+  if (quem) toast(quem === S.user.nome ? 'Atualizado: você mexeu nesta escala em outra tela' : `Atualizado: ${quem} mexeu nesta escala`);
 }
 // Voltou para o app (outra aba, celular desbloqueado): busca o que mudou e confere se há versão nova
 document.addEventListener('visibilitychange', () => {
