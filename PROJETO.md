@@ -78,11 +78,13 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
   O X no dia de feriado é o descanso do feriado: não entra nas folgas regulares e reduz o mínimo daquela semana; quem trabalha no feriado ganha FC.
 - Cobertura (08): mínimo por turno na aba Turnos (alerta).
 
-## Decisões do Gustavo (26/11/2026)
+## Decisões do Gustavo (26 e 27/11/2026)
+- **A semana vai de DOMINGO a SÁBADO** (como as equipes contam; 27/11/2026). inicioSemana() no app; a regra da semana é a do domingo que a abre.
+  Semana de transição: 13 a 19/12/2026 (regra antiga + alerta); 42h e 2 folgas a partir de 20/12/2026. Alerta de 6 dias seguidos só na 5x2.
 - **Por enquanto só o JML faz escala no app.** Tudo o que o Gustavo disser sobre equipes e regras vale para o JML; os outros prédios
   ficam como estão (equipe da Governança importada, sem sexo preenchido). No JML: Governança toda feminina, Manutenção toda masculina.
 - Semana de transição 14–20/12/2026 (a lei muda na quarta): segue a regra antiga (44h, 1 folga; excesso = alerta de hora extra), com um alerta
-  lembrando; 42h e 2 folgas a partir de 21/12/2026. No código: a semana usa a regra da segunda-feira que a abre (`regraEm(ds[0])`).
+  lembrando; 42h e 2 folgas a partir de 21/12/2026. No código: a semana usa a regra do domingo que a abre (`regraEm(ds[0])`).
 - Domingo das mulheres (CLT 386) é **alerta**, não bloqueio, e os domingos só contam a partir de 16/12/2026 (`REGRA.domingoDesde`).
 - Escala só tem funcionário fixo registrado: as Cooperadas 1 e 2 do JML foram desativadas e tiradas de dez/jan (as linhas sem nome da planilha
   eram vagas, não cooperadas). A opção `esc_funcionarios.sem_regras` ("Cooperada / não CLT" na Equipe) continua no app, sem uso.

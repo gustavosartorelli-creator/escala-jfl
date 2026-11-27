@@ -309,7 +309,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v12';
+const VERSAO = 'v13';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -343,9 +343,9 @@ const FERIADOS = {
 };
 
 /* ===== Regras da lei (EC 141/2026). Para mudar um limite, mude aqui. =====
-   A semana vai de segunda a domingo; vale a regra em vigor na segunda-feira que abre a semana.
-   A semana em que a lei muda (14 a 20/12/2026, a mudança é na quarta) é de transição: segue a regra antiga, com alerta;
-   a regra nova começa na primeira semana cheia (21/12/2026). Decisão do Gustavo em 26/11/2026. */
+   A semana vai de DOMINGO a SÁBADO; vale a regra em vigor no domingo que abre a semana.
+   A semana em que a lei muda (13 a 19/12/2026, a mudança é na quarta) é de transição: segue a regra antiga, com alerta;
+   a regra nova começa na primeira semana cheia (20/12/2026). Decisões do Gustavo em 26 e 27/11/2026. */
 const LEI = [
   { desde: '0000-01-01', horas: 44, folgas: 1, nome: 'CLT até 15/12/2026 (44h, 6x1)' },
   { desde: '2026-12-16', horas: 42, folgas: 2, nome: 'EC 141/2026 (42h, 5x2)' },
@@ -380,7 +380,8 @@ const dUTC = iso => new Date(iso + 'T00:00:00Z');
 const isoDe = d => d.toISOString().slice(0, 10);
 const addDias = (iso, n) => { const d = dUTC(iso); d.setUTCDate(d.getUTCDate() + n); return isoDe(d); };
 const dow = iso => dUTC(iso).getUTCDay();                 // 0 = domingo
-const segundaDe = iso => addDias(iso, -((dow(iso) + 6) % 7));
+// Semana de DOMINGO a SÁBADO, como as equipes contam (Gustavo, 27/11/2026)
+const inicioSemana = iso => addDias(iso, -dow(iso));
 const fimDoMes = mes => { const d = dUTC(mes); d.setUTCMonth(d.getUTCMonth() + 1); d.setUTCDate(0); return isoDe(d); };
 const mesAnterior = mes => { const d = dUTC(mes); d.setUTCMonth(d.getUTCMonth() - 1); return isoDe(d); };
 const ddmm = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
@@ -665,8 +666,8 @@ function validar(){
     if (vazios) add('b', f, `${vazios} dia${vazios > 1 ? 's' : ''} sem marcação (${periodos(diasVazios)})`);
     if (f.sem_regras) continue; // cooperada / não CLT: só confere se todos os dias estão marcados
 
-    // Semanas (segunda a domingo) que tocam o mês: horas e folgas
-    for (let s = segundaDe(ini); s <= fim; s = addDias(s, 7)) {
+    // Semanas (domingo a sábado) que tocam o período: horas e folgas
+    for (let s = inicioSemana(ini); s <= fim; s = addDias(s, 7)) {
       const ds = [0,1,2,3,4,5,6].map(i => addDias(s, i)), r = regraEm(ds[0]);
       const xs = ds.map(d => info(f, d));
       const min = xs.reduce((a, x) => a + (x.tipo === 'trab' ? x.trab : 0), 0);
@@ -697,7 +698,7 @@ function validar(){
         if (seguidos > REGRA.diasSeguidosMax && d >= ini) {
           const msg = `${ddmm(d)}: ${seguidos}º dia seguido de trabalho; 7 ou mais dias seguidos não é permitido`;
           marca(f.id, d, 'b', msg); add('b', f, msg);
-        } else if (seguidos > REGRA.diasSeguidosIdeal && d >= ini) {
+        } else if (seguidos > REGRA.diasSeguidosIdeal && d >= ini && regraEm(inicioSemana(d)).folgas === 2) { // na 6x1, 6 dias seguidos é o normal
           const msg = `${ddmm(d)}: ${seguidos}º dia seguido de trabalho; o ideal é até ${REGRA.diasSeguidosIdeal} (6 só excepcionalmente, na virada da semana)`;
           marca(f.id, d, 'a', msg); add('a', f, msg);
         }
@@ -734,7 +735,7 @@ function validar(){
   }
 
   // Semana de transição (a lei muda no meio da semana): segue a regra antiga, com um lembrete
-  for (let s = segundaDe(ini); s <= fim; s = addDias(s, 7)) {
+  for (let s = inicioSemana(ini); s <= fim; s = addDias(s, 7)) {
     const dom = addDias(s, 6), nova = LEI.find(r => r.desde > s && r.desde <= dom);
     if (nova && funcs.length) add('a', null, `Semana de ${ddmm(s)} a ${ddmm(dom)} é de transição: a lei muda em ${ddmm(nova.desde)}, no meio da semana. Nela ainda vale a regra antiga (${regraEm(s).horas}h e ${regraEm(s).folgas} folga${regraEm(s).folgas > 1 ? 's' : ''}; o que passar é hora extra). ${nova.horas}h e ${nova.folgas} folgas por semana a partir de ${ddmm(addDias(s, 7))}.`);
   }
@@ -872,7 +873,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
   for (const d of dias) {
     const w = dow(d), cov = V.diaCob[d], fer = FERIADOS[d];
     const tit = [fer ? 'Feriado: ' + fer : '', cov ? 'Abaixo do mínimo: ' + cov.join(', ') : ''].filter(Boolean).join('\n');
-    h += `<th class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${fer ? 'fer' : ''} ${cov ? 'cov' : ''}" ${tit ? `title="${esc(tit)}"` : ''}>${SEM_PLAN[w]}<b>${+d.slice(8)}</b></th>`;
+    h += `<th class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'seg' : ''} ${fer ? 'fer' : ''} ${cov ? 'cov' : ''}" ${tit ? `title="${esc(tit)}"` : ''}>${SEM_PLAN[w]}<b>${+d.slice(8)}</b></th>`;
   }
   const prev = folgasPrevistas();
   h += `<th class="res">Trab.</th><th class="res" title="${esc(prev.texto)}">Folgas<br><small>de ${prev.total}</small></th>${usados.map(k => `<th class="res">${k === 'F' ? 'Falta' : k}</th>`).join('')}</tr></thead><tbody>`;
@@ -885,7 +886,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
     // Linha da seção repete os dias (como a planilha), para não ter de subir até o topo
     h += `<tr class="secao"><th class="nome">${esc(s.nome)}</th><td class="hor"></td>${corte ? '<td class="hor"></td>' : ''}${dias.map(d => {
       const w = dow(d);
-      return `<td class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${FERIADOS[d] ? 'fer' : ''}">${SEM_PLAN[w]}<b>${+d.slice(8)}</b></td>`;
+      return `<td class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'seg' : ''} ${FERIADOS[d] ? 'fer' : ''}">${SEM_PLAN[w]}<b>${+d.slice(8)}</b></td>`;
     }).join('')}<td class="res"></td><td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}</tr>`;
     for (const f of s.fs) {
       const hor = horariosPessoa(f, corte), t = V.totais[f.id];
@@ -897,7 +898,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
         const w = dow(d), m = marcas && V.cel[f.id + '|' + d], ci = celInfo(f, d, hor, corte);
         if (ci.c && !OUTROS[ci.c]) trab++; else if (ci.c) cont[ci.c] = (cont[ci.c] || 0) + 1;
         if (ci.c === 'X' && FERIADOS[d]) xFeriado++;   // X no feriado é o descanso do feriado, não folga regular
-        h += `<td class="c ${ed ? '' : 'ro'} ${ci.cls} ${[0, 6].includes(w) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${w === 1 ? 'seg' : ''} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (ci.c && !OUTROS[ci.c] && turnoEm(ci.c, d) ? ' · ' + horaLonga(turnoEm(ci.c, d), d) : ci.c ? ' · ' + OUTROS[ci.c].nome : '') + (m ? '\n' + m.msgs.join('\n') : ''))}">${esc(ci.txt)}</td>`;
+        h += `<td class="c ${ed ? '' : 'ro'} ${ci.cls} ${[0, 6].includes(w) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${w === 0 ? 'seg' : ''} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (ci.c && !OUTROS[ci.c] && turnoEm(ci.c, d) ? ' · ' + horaLonga(turnoEm(ci.c, d), d) : ci.c ? ' · ' + OUTROS[ci.c].nome : '') + (m ? '\n' + m.msgs.join('\n') : ''))}">${esc(ci.txt)}</td>`;
       }
       // Folgas do mês (X, FC, FP, XX, BH) contra as previstas; quem teve férias, atestado, falta ou admissão no mês fica sem cor
       const folgas = CODIGOS_FOLGA.reduce((a, k) => a + (cont[k] || 0), 0) - xFeriado;
@@ -988,8 +989,8 @@ function renderEscala(){
     ${Object.entries(OUTROS).map(([k, o]) => `<span><b class="${o.cls}">${k}</b>${esc(o.nome)}</span>`).join('')}
     <span><b class="lfds">&nbsp;&nbsp;</b>Fim de semana</span>
     ${fers.length ? `<span><b class="lfer">&nbsp;&nbsp;</b>Feriado: ${fers.map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}</span>` : ''}</div>`;
-  const r = regraEm(segundaDe(fimPer(MES))), r0 = regraEm(MES);
-  h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de transição; a partir de ${ddmm(segundaDe(addDias(r.desde, 6)))} ${esc(r.nome)}`}. Semanas de segunda a domingo (linha mais grossa = segunda-feira).</p>`;
+  const r = regraEm(inicioSemana(fimPer(MES))), r0 = regraEm(MES);
+  h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de transição; a partir de ${ddmm(inicioSemana(addDias(r.desde, 6)))} ${esc(r.nome)}`}. Semanas de domingo a sábado (linha mais grossa = domingo).</p>`;
 
   // Problemas
   const bl = V.lista.filter(x => x.n === 'b'), al = V.lista.filter(x => x.n === 'a');
@@ -1034,7 +1035,7 @@ function ligarEscala(){
     if (cod) GRADE[f][d] = cod; else delete GRADE[f][d];
     const t = cod && !OUTROS[cod] && turnoEm(cod, d);
     td.textContent = PINCEL === '*' && celulaEstilo(DEP) === 'vazio' ? '' : t ? horaCurta(t, d) : cod;
-    td.className = `c ${PINCEL === '*' ? 'kpad' : t ? 'kout' : cod ? OUTROS[cod].cls : 'vazio'} ${[0, 6].includes(dow(d)) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${dow(d) === 1 ? 'seg' : ''}`;
+    td.className = `c ${PINCEL === '*' ? 'kpad' : t ? 'kout' : cod ? OUTROS[cod].cls : 'vazio'} ${[0, 6].includes(dow(d)) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${dow(d) === 0 ? 'seg' : ''}`;
     mudou();
   };
   g.addEventListener('pointerdown', e => { const td = e.target.closest('td.c'); if (!td) return; pintando = e.pointerType === 'mouse'; pinta(td); });
@@ -1305,7 +1306,7 @@ function renderRegras(){
   const R = (t, tipo, txt, base) => `<div class="regra"><b>${t}<span class="tp ${tipo}">${tipo === 'b' ? 'Bloqueia o envio' : 'Alerta'}</span></b>${txt}<br><small>${base}</small></div>`;
   $('#conteudo').innerHTML = `<p class="hint">O app confere a escala enquanto ela é montada. <b>Bloqueio</b>: a escala não pode ser enviada para aprovação até ser corrigida. <b>Alerta</b>: pode enviar, mas o Gerente Geral vê o aviso.</p>
   <div class="regras">
-    ${R('Carga semanal', 'b', 'Até a semana de 14 a 20/12/2026: 44h (acima disso aparece só alerta de hora extra). A partir de 21/12/2026: <b>42h</b>, bloqueia. A partir de 20/12/2027: <b>40h</b>. A semana vai de segunda a domingo. A semana em que a lei muda (14 a 20/12/2026, mudança na quarta) é de transição: ainda segue a regra antiga, e o app mostra um alerta para lembrar. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
+    ${R('Carga semanal', 'b', 'Até a semana de 13 a 19/12/2026: 44h (acima disso aparece só alerta de hora extra). A partir de 20/12/2026: <b>42h</b>, bloqueia. A partir de 19/12/2027: <b>40h</b>. <b>A semana vai de domingo a sábado</b>, como as equipes contam. A semana em que a lei muda (13 a 19/12/2026, mudança na quarta) é de transição: ainda segue a regra antiga, e o app mostra um alerta para lembrar. Turnos com versão por data usam o horário de cada dia (ex.: 07–16 até 15/12 e 07–16:24 a partir de 16/12).', 'Emenda Constitucional 141/2026')}
     ${R('Período da escala: 16 a 15', 'b', 'Cada escala vai do dia 16 ao dia 15 do mês seguinte. Na transição, para a equipe se acostumar: dezembro inteiro (01 a 31/12/2026) e janeiro até o dia 15 (01 a 15/01/2027); os períodos 16 a 15 começam em 16/01/2027. O app confere a continuidade com a escala anterior (semanas, dias seguidos, 11h e domingos).', 'Premissas JFL 5x2, item 07')}
     ${R('Duas folgas regulares por semana (5x2)', 'b', 'A partir de 16/12/2026, no mínimo 2 folgas regulares (X ou FP) em cada semana, seguidas ou alternadas. Antes disso, 1. Férias, atestado, falta e NA reduzem o que falta naquela semana. <b>FC, BH e XX não substituem</b> a folga da semana.', 'EC 141/2026; Premissas JFL 5x2, itens 02 e 05')}
     ${R('Dias seguidos de trabalho', 'b', 'Ideal: até 5. 6 dias seguidos só excepcionalmente, na virada da semana (alerta). 7 ou mais: não permitido (bloqueia), inclusive na virada de uma escala para a outra.', 'Premissas JFL 5x2, item 03; CLT art. 67')}
