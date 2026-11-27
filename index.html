@@ -335,7 +335,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v24';
+const VERSAO = 'v25';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -1038,7 +1038,9 @@ function renderEscala(){
     <span><b class="lfds">&nbsp;&nbsp;</b>Fim de semana</span>
     ${fers.length ? `<span><b class="lfer">&nbsp;&nbsp;</b>Feriado: ${fers.map(d => `${ddmm(d)} ${esc(FERIADOS[d])}`).join(', ')}</span>` : ''}</div>`;
   const r = regraEm(inicioSemana(fimPer(MES))), r0 = regraEm(MES);
-  h += `<p class="hint">Regra em vigor: ${r0 === r ? esc(r.nome) : `${esc(r0.nome)} até a semana de transição; a partir de ${ddmm(inicioSemana(addDias(r.desde, 6)))} ${esc(r.nome)}`}. Semanas de domingo a sábado (linha mais grossa = domingo).</p>`;
+  const semTr = inicioSemana(r.desde), semNova = addDias(semTr, 7);
+  h += `<p class="hint">${r0 === r ? `Regra em vigor: ${esc(r.nome)}.`
+    : `A nova lei (${esc(r.nome.replace(' (', ', ').replace(')', ''))}) vale desde <b>${ddmm(r.desde)}</b>, com os horários novos. A semana de ${ddmm(semTr)} a ${ddmm(addDias(semTr, 6))} é de transição: nela a conferência ainda usa ${r0.horas}h e ${r0.folgas} folga por semana (o que passar é só alerta). A partir da semana de ${ddmm(semNova)}: ${r.horas}h e ${r.folgas} folgas por semana.`} Semanas de domingo a sábado (linha mais grossa = domingo).</p>`;
 
   // Problemas
   const bl = V.lista.filter(x => x.n === 'b'), al = V.lista.filter(x => x.n === 'a');
