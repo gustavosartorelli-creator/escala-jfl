@@ -37,7 +37,8 @@ Turnos iniciais: **M** 07:00–15:20 (sáb/dom 08:00–16:20), **I** 11:00–19:
 da 6x1, faltam as versões a partir de 16/12, ex.: Recepção 07:00–16:24). Manutenção do JML: 07, 08, 09, 10, 12 (hora de entrada), com as
 versões antiga e nova da planilha do Willian. A escala guarda uma cópia dos turnos (`esc_escalas.turnos`) ao salvar.
 Manutenção do JML: dez/2026 e jan/2027 importados das planilhas do Willian (OneDrive, Área de Trabalho\Escalas\Manutenção) como rascunho.
-Governança do JML: dez/2026 e jan/2027 importados de "ESCALA - GOVERNANÇA - 2026 (1).xlsx" como rascunho (ver `sql/2026-11-26_governanca_jml.sql`).
+Governança do JML: dez/2026 e jan/2027 atualizados em 27/11/2026 por "ESCALA - GOVERNANÇA - 2026 (2).xlsx" (Downloads; a aba de janeiro
+começa com uma coluna do dia 31/12; "XF" = X; a Norma não está na planilha e foi mantida). Antes, importados de "(1).xlsx" como rascunho (ver `sql/2026-11-26_governanca_jml.sql`).
 Turnos por função: C camareira, R rouparia, S supervisora de rouparia, A1/A2/A3 ASG (6h, manhã, tarde), G governanta; M/I/T no JML ficaram só para a
 Recepção. A Governança do JML **não** é fechada no domingo (os ASGs trabalham). Nomes trocados para os da planilha: Sol → Solange, Glorinha → Maria da Glória,
 Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha → Cooperada 1 e 2.
@@ -73,7 +74,8 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Domingos (04): mulher quinzenal, homem 1 a cada 4 semanas — os dois **bloqueiam** (Gustavo confirmou em 26/11/2026, seguindo o "garantir" das premissas).
   Os domingos contam a partir de 16/12/2026.
 - Feriado trabalhado (05): alerta pedindo FC no período.
-- Equalização (06): referência = sábados + domingos do período (coluna "Folgas de N"; antes de 16/12/2026, só domingos).
+- Equalização (06): referência = domingos + sábados a partir de 16/12/2026 (conta do Gustavo: dezembro = 4 domingos + sábados 19 e 26 = 6).
+  O X no dia de feriado é o descanso do feriado: não entra nas folgas regulares e reduz o mínimo daquela semana; quem trabalha no feriado ganha FC.
 - Cobertura (08): mínimo por turno na aba Turnos (alerta).
 
 ## Decisões do Gustavo (26/11/2026)

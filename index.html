@@ -160,8 +160,10 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 .grade thead .hor{font-size:11px;color:var(--muted)}
 .grade .res{font-size:12px;padding:0 6px;min-width:30px;color:var(--muted)}
 .grade thead th.res{font-size:10px}
-.grade tr.secao th{background:var(--brand-bg);color:var(--brand);text-align:left;font-size:11px;letter-spacing:.14em;padding:5px 10px;font-weight:700}
-.grade tr.secao th span{position:sticky;left:10px}
+.grade tr.secao th,.grade tr.secao td{background:var(--brand-bg);font-size:10px;font-weight:600;color:var(--muted);padding:3px 0;line-height:1.15}
+.grade tr.secao th.nome{color:var(--brand);text-align:left;font-size:11px;letter-spacing:.14em;padding:5px 10px;font-weight:700}
+.grade tr.secao td.dia b{display:block;font-size:12px;color:var(--ink)}
+.grade tr.secao td.fds{background:var(--fds2)} .grade tr.secao td.fer{background:var(--fer)}
 .grade.larga td.c{min-width:60px;font-size:11px}
 .grade td.c.kout{font-size:11px}
 .folgasprev{font-size:14px;font-weight:600;margin:0 2px 8px}
@@ -307,7 +309,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v10';
+const VERSAO = 'v12';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -632,6 +634,7 @@ function validar(){
     else return { tipo: '?' };
     if (!c) return { tipo: iso >= ini ? 'vazio' : '?' };
     if (c === 'NA') return { tipo: 'x', c };
+    if (c === 'X' && FERIADOS[iso]) return { tipo: 'feriado', c }; // descanso do feriado: à parte das 2 folgas da semana
     if (FOLGA_REGULAR.includes(c)) return { tipo: 'folga', c };
     if (AUSENCIA.includes(c)) return { tipo: 'ausencia', c };
     if (OUTROS[c]) return { tipo: 'extra', c };   // FC, BH, XX: folga a mais, não conta nas 2 da semana
@@ -669,7 +672,7 @@ function validar(){
       const min = xs.reduce((a, x) => a + (x.tipo === 'trab' ? x.trab : 0), 0);
       // Folgas regulares da semana: X e FP. Férias, atestado, falta e "não se aplica" reduzem o que falta; FC, BH e XX não contam.
       const folgas = xs.filter(x => x.tipo === 'folga').length;
-      const desconhecidos = xs.filter(x => ['?', 'vazio', 'x', 'ausencia'].includes(x.tipo)).length;
+      const desconhecidos = xs.filter(x => ['?', 'vazio', 'x', 'ausencia', 'feriado'].includes(x.tipo)).length;
       const per = `Semana ${ddmm(ds[0])} a ${ddmm(ds[6])}`;
       if (min > r.horas * 60) {
         // Antes de 16/12/2026 (regra antiga) passar do limite vira hora extra: alerta. Na regra nova, bloqueia.
@@ -854,11 +857,11 @@ function folgasPrevistas(){
   const fim = fimPer(MES); let sab = 0, dom = 0; const fers = [];
   for (let d = MES; d <= fim; d = addDias(d, 1)) {
     if (dow(d) === 0) dom++;
-    if (dow(d) === 6 && regraEm(segundaDe(d)).folgas === 2) sab++;
+    if (dow(d) === 6 && regraEm(d).folgas === 2) sab++;   // sábados a partir de 16/12/2026 (conta do Gustavo)
     if (FERIADOS[d]) fers.push(d);
   }
   const total = sab + dom;
-  return { total, texto: `Referência de folgas no período: ${sab} sábado${sab === 1 ? '' : 's'}${sab && regraEm(MES).folgas === 1 ? ' (só das semanas já na 5x2)' : ''} + ${dom} domingo${dom === 1 ? '' : 's'} = ${total} folgas regulares (X)${fers.length ? `. Feriados: ${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')} (quem trabalhar ganha folga compensatória, FC, à parte)` : ''}` };
+  return { total, texto: `Referência de folgas no período: ${sab} sábado${sab === 1 ? '' : 's'}${sab && regraEm(MES).folgas === 1 ? ' (a partir de 16/12)' : ''} + ${dom} domingo${dom === 1 ? '' : 's'} = ${total} folgas regulares (X)${fers.length ? `. Feriados: ${fers.map(d => ddmm(d) + ' ' + FERIADOS[d]).join(', ')} (quem trabalhar ganha folga compensatória, FC, à parte)` : ''}` };
 }
 
 function tabelaEscala({ ed = false, marcas = false } = {}){
@@ -879,20 +882,25 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
   for (const f of funcs) { const s = f.secao || (f.cargo || 'EQUIPE').toUpperCase(); let x = secoes.find(x => x.nome === s); if (!x) secoes.push(x = { nome: s, fs: [] }); x.fs.push(f); }
   secoes.sort((a, b) => (ordemSecao(a.nome) - ordemSecao(b.nome)) || (Math.min(...a.fs.map(f => f.ordem)) - Math.min(...b.fs.map(f => f.ordem))));
   for (const s of secoes) {
-    h += `<tr class="secao"><th colspan="${ncol}"><span>${esc(s.nome)}</span></th></tr>`;
+    // Linha da seção repete os dias (como a planilha), para não ter de subir até o topo
+    h += `<tr class="secao"><th class="nome">${esc(s.nome)}</th><td class="hor"></td>${corte ? '<td class="hor"></td>' : ''}${dias.map(d => {
+      const w = dow(d);
+      return `<td class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 1 ? 'seg' : ''} ${FERIADOS[d] ? 'fer' : ''}">${SEM_PLAN[w]}<b>${+d.slice(8)}</b></td>`;
+    }).join('')}<td class="res"></td><td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}</tr>`;
     for (const f of s.fs) {
       const hor = horariosPessoa(f, corte), t = V.totais[f.id];
       const avisoSexo = marcas && !f.sem_regras && !f.sexo ?' <span class="sx falta" title="Informe na aba Equipe se é mulher ou homem">sexo?</span>' : '';
       h += `<tr><th class="nome" title="${esc(`${f.cargo || ''} · ${hm(t.min)} no mês${f.sem_regras ? ' · não CLT' : ''}`)}">${esc(f.nome)}${f.ativo ? '' : ' <span class="tagx">inativo</span>'}${avisoSexo}</th>
         <td class="hor">${esc(hor[0] || '—')}</td>${corte ? `<td class="hor">${esc(hor[1] || '—')}</td>` : ''}`;
-      const cont = {}; let trab = 0;
+      const cont = {}; let trab = 0, xFeriado = 0;
       for (const d of dias) {
         const w = dow(d), m = marcas && V.cel[f.id + '|' + d], ci = celInfo(f, d, hor, corte);
         if (ci.c && !OUTROS[ci.c]) trab++; else if (ci.c) cont[ci.c] = (cont[ci.c] || 0) + 1;
+        if (ci.c === 'X' && FERIADOS[d]) xFeriado++;   // X no feriado é o descanso do feriado, não folga regular
         h += `<td class="c ${ed ? '' : 'ro'} ${ci.cls} ${[0, 6].includes(w) ? 'fds' : ''} ${FERIADOS[d] ? 'fer' : ''} ${w === 1 ? 'seg' : ''} ${m ? m.n : ''}" data-f="${f.id}" data-d="${d}" title="${esc(SEM_NOME[w] + ' ' + ddmm(d) + (ci.c && !OUTROS[ci.c] && turnoEm(ci.c, d) ? ' · ' + horaLonga(turnoEm(ci.c, d), d) : ci.c ? ' · ' + OUTROS[ci.c].nome : '') + (m ? '\n' + m.msgs.join('\n') : ''))}">${esc(ci.txt)}</td>`;
       }
       // Folgas do mês (X, FC, FP, XX, BH) contra as previstas; quem teve férias, atestado, falta ou admissão no mês fica sem cor
-      const folgas = CODIGOS_FOLGA.reduce((a, k) => a + (cont[k] || 0), 0);
+      const folgas = CODIGOS_FOLGA.reduce((a, k) => a + (cont[k] || 0), 0) - xFeriado;
       const fora = ['FE', 'AT', 'F', 'NA'].some(k => cont[k]);
       const cf = fora ? '' : folgas === prev.total ? 'fok' : folgas < prev.total ? 'fmenos' : 'fmais';
       const tf = fora ? 'Teve férias, atestado, falta ou admissão no mês: o previsto não se aplica' : folgas === prev.total ? 'Bate com o previsto' : folgas < prev.total ? `${prev.total - folgas} a menos que o previsto` : `${folgas - prev.total} a mais que o previsto`;
