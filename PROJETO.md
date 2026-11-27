@@ -120,3 +120,5 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
   lerPortaria() reconhece "Sábado dia 28 de novembro (diurno)", "Equipe (Noturna)", "Nome: posto 06h/18h", "Nome - posto - 20hrs/ 8 hrs",
   "Estacionamento: não informado" (vira posto + observação). Prévia editável antes de salvar; os dias importados substituem os anteriores.
 - Tabela esc_portaria; RPCs esc_portaria_listar e esc_portaria_salvar (sql/2026-11-27_portaria.sql). Fim de semana 28–29/11/2026 já gravado (imagem do Gustavo).
+- **Homem: ao menos 1 domingo de folga em cada mês do calendário** (Gustavo, 27/11/2026; substitui o '1 a cada 4 semanas' das premissas). Bloqueia; vale desde dezembro inteiro (não usa `domingoDesde`). O mês só é conferido quando todos os domingos dele estão na escala atual ou na anterior.
+- Setas do período também logo acima e abaixo da grade (`navMini`).

@@ -334,7 +334,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v16';
+const VERSAO = 'v17';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -383,7 +383,7 @@ const REGRA = {
   diasSeguidosMax: 6,
   domingoMulherSemanas: 2,  // mulher: revezamento quinzenal (CLT art. 386) — bloqueia (premissas: "garantir")
   domingoDesde: '2026-12-16', // os domingos só contam a partir daqui (decisão do Gustavo em 26/11/2026)
-  domingoHomemSemanas: 4,   // homem: ao menos 1 domingo de folga a cada 4 semanas (premissas JFL) — bloqueia
+  // homem: ao menos 1 domingo de folga em cada mês (Gustavo, 27/11/2026) — bloqueia; ver o fim do laço de domingos em validar()
   jornadaMax: 10 * 60,      // 8h + 2h extras (CLT art. 59)
   jornadaNormal: 8 * 60 + 24 // 8h24 é a jornada padrão da 5x2 (premissas JFL)
 };
@@ -748,9 +748,17 @@ function validar(){
       if (f.sexo === 'F' && n >= REGRA.domingoMulherSemanas) {
         const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; mulher precisa de folga no domingo a cada 15 dias (CLT art. 386)`;
         marca(f.id, d, 'b', msg); add('b', f, msg);
-      } else if (f.sexo === 'M' && n >= REGRA.domingoHomemSemanas) {
-        const msg = `${ddmm(d)}: ${n} domingos seguidos de trabalho; homem precisa de ao menos 1 domingo de folga a cada 4 semanas`;
-        marca(f.id, d, 'b', msg); add('b', f, msg);
+      }
+    }
+    // Homem: ao menos 1 domingo de folga em cada mês do calendário (Gustavo, 27/11/2026). Vale desde dezembro inteiro.
+    // Só confere o mês quando todos os domingos dele estão na escala (esta ou a anterior).
+    if (f.sexo === 'M') for (const m of [...new Set(dias.map(d => d.slice(0, 7)))]) {
+      const doms = []; for (let d = m + '-01'; d.slice(0, 7) === m; d = addDias(d, 1)) if (dow(d) === 0) doms.push(d);
+      const xs = doms.map(d => info(f, d));
+      if (xs.some(x => x.tipo === '?' || x.tipo === 'vazio')) continue;
+      if (xs.every(x => x.tipo === 'trab')) {
+        const msg = `Nenhum domingo de folga em ${MESES[+m.slice(5) - 1]} (${doms.map(ddmm).join(', ')}); homem precisa de ao menos 1 domingo de folga por mês`;
+        add('b', f, msg); doms.forEach(d => marca(f.id, d, 'b', msg));
       }
     }
 
@@ -1517,7 +1525,7 @@ function renderRegras(){
     ${R('Equalização das folgas', 'a', 'Referência de folgas regulares no período: quantidade de sábados + domingos. A coluna "Folgas" fica verde quando bate, amarela quando falta e cinza quando passa; diferenças precisam de justificativa.', 'Premissas JFL 5x2, item 06')}
     ${R('11h de descanso entre jornadas', 'b', 'Entre a saída de um dia e a entrada do dia seguinte. Ex.: Tarde (sai 22:00) seguida de Manhã (entra 07:00) dá só 9h: bloqueado.', 'CLT art. 66')}
     ${R('Mulher: revezamento quinzenal do domingo', 'b', 'Não pode trabalhar dois domingos seguidos. Os domingos contam a partir de 16/12/2026.', 'CLT art. 386; Premissas JFL 5x2, item 04')}
-    ${R('Homem: 1 domingo de folga a cada 4 semanas', 'b', 'Não pode trabalhar 4 domingos seguidos (contando a partir de 16/12/2026). Sempre que der, buscar o revezamento quinzenal para todos.', 'Premissas JFL 5x2, item 04')}
+    ${R('Homem: 1 domingo de folga por mês', 'b', 'Em cada mês do calendário, pelo menos 1 domingo de folga (vale desde dezembro/2026). O app confere o mês quando todos os domingos dele já estão na escala. Sempre que der, buscar o revezamento quinzenal para todos.', 'Lei 605/1949; decisão da operação JFL')}
     ${R('Intervalo para almoço', 'b', 'Jornada acima de 6h: mínimo 1h (máximo 2h). De 4h a 6h: 15 min. Conferido no cadastro do turno.', 'CLT art. 71')}
     ${R('Jornada diária', 'b', 'Padrão da 5x2: 8h24 de trabalho + 1h de intervalo (9h24 entre entrada e saída). Acima de 8h24 aparece alerta (hora extra); acima de 10h bloqueia.', 'Premissas JFL 5x2, item 01; CLT art. 59')}
     ${R('Todos os dias marcados', 'b', 'Cada pessoa precisa ter um código em todos os dias do mês: um turno ou X folga, FC compensa feriado, FP preferência de folga, XX folga aniversário, BH banco de horas, FE férias, AT atestado, F falta, NA não se aplica (antes da admissão ou depois do desligamento). Feriados aparecem destacados no topo da grade.', 'Regra do app')}
