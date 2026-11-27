@@ -167,6 +167,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 .grade .res{font-size:12px;padding:0 6px;min-width:30px;color:var(--muted)}
 .grade thead th.res{font-size:10px}
 .grade tr.secao th,.grade tr.secao td{background:var(--brand-bg);font-size:10px;font-weight:600;color:var(--muted);padding:3px 0;line-height:1.15}
+.grade td.res.tot-f,.grade th.res.tot-f{font-weight:700;color:var(--ink);border-left:2px solid var(--muted)}
 .grade tr.secao th.nome{color:var(--brand);text-align:left;font-size:11px;letter-spacing:.14em;padding:5px 10px;font-weight:700}
 .grade tr.secao td.dia b{display:block;font-size:12px;color:var(--ink)}
 .grade tr.secao td.fds{background:var(--fds2)} .grade tr.secao td.fer{background:var(--fer)}
@@ -334,7 +335,7 @@ table.grade{border-collapse:separate;border-spacing:0;font-size:13px;user-select
 
 <script>
 /* ================= Config ================= */
-const VERSAO = 'v22';
+const VERSAO = 'v23';
 const SUPABASE_URL = 'https://zzppioqshjiltllfpttg.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_gESIDVWQtHFMkCDzwP7w2g_17eYXfzK';
 const TZ = 'America/Sao_Paulo';
@@ -914,8 +915,8 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
     h += `<th class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'seg' : ''} ${fer ? 'fer' : ''} ${cov ? 'cov' : ''}" ${tit ? `title="${esc(tit)}"` : ''}>${SEM_PLAN[w]}<b>${+d.slice(8)}</b></th>`;
   }
   const prev = folgasPrevistas();
-  h += `<th class="res">Trab.</th><th class="res" title="${esc(prev.texto)}">Folgas<br><small>de ${prev.total}</small></th>${usados.map(k => `<th class="res">${k === 'F' ? 'Falta' : k}</th>`).join('')}</tr></thead><tbody>`;
-  const ncol = 2 + (corte ? 1 : 0) + dias.length + 2 + usados.length;
+  h += `<th class="res">Trab.</th><th class="res" title="${esc(prev.texto)}">Folgas<br><small>de ${prev.total}</small></th>${usados.map(k => `<th class="res">${k === 'F' ? 'Falta' : k}</th>`).join('')}<th class="res tot-f" title="Todos os dias de folga: X, FC, FP, XX e BH">Total<br>folgas</th></tr></thead><tbody>`;
+  const ncol = 2 + (corte ? 1 : 0) + dias.length + 3 + usados.length;
   // Seções na ordem da planilha
   const secoes = [];
   for (const f of funcs) { const s = f.secao || (f.cargo || 'EQUIPE').toUpperCase(); let x = secoes.find(x => x.nome === s); if (!x) secoes.push(x = { nome: s, fs: [] }); x.fs.push(f); }
@@ -925,7 +926,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
     h += `<tr class="secao"><th class="nome">${esc(s.nome)}</th><td class="hor"></td>${corte ? '<td class="hor"></td>' : ''}${dias.map(d => {
       const w = dow(d);
       return `<td class="dia ${[0, 6].includes(w) ? 'fds' : ''} ${w === 0 ? 'seg' : ''} ${FERIADOS[d] ? 'fer' : ''}">${SEM_PLAN[w]}<b>${+d.slice(8)}</b></td>`;
-    }).join('')}<td class="res"></td><td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}</tr>`;
+    }).join('')}<td class="res"></td><td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}<td class="res"></td></tr>`;
     for (const f of s.fs) {
       const hor = horariosPessoa(f, corte), t = V.totais[f.id];
       const avisoSexo = marcas && !f.sem_regras && !f.sexo ?' <span class="sx falta" title="Informe na aba Equipe se é mulher ou homem">sexo?</span>' : '';
@@ -943,7 +944,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
       const fora = ['FE', 'AT', 'F', 'NA'].some(k => cont[k]);
       const cf = fora ? '' : folgas === prev.total ? 'fok' : folgas < prev.total ? 'fmenos' : 'fmais';
       const tf = fora ? 'Teve férias, atestado, falta ou admissão no mês: o previsto não se aplica' : folgas === prev.total ? 'Bate com o previsto' : folgas < prev.total ? `${prev.total - folgas} a menos que o previsto` : `${folgas - prev.total} a mais que o previsto`;
-      h += `<td class="res num">${trab}</td><td class="res num ${cf}" title="${esc(tf)}">${folgas}</td>${usados.map(k => `<td class="res num">${cont[k] || ''}</td>`).join('')}</tr>`;
+      h += `<td class="res num">${trab}</td><td class="res num ${cf}" title="${esc(tf)}">${folgas}</td>${usados.map(k => `<td class="res num">${cont[k] || ''}</td>`).join('')}<td class="res num tot-f">${['X', 'FC', 'FP', 'XX', 'BH'].reduce((s, k) => s + (cont[k] || 0), 0)}</td></tr>`;
     }
   }
   // Rodapé como o da planilha: quantos por período e no dia
@@ -961,7 +962,7 @@ function tabelaEscala({ ed = false, marcas = false } = {}){
       const n = funcs.filter(f => { const c = (GRADE[f.id] || {})[d], t = c && !OUTROS[c] && turnoEm(c, d); return t && (i < 0 || periodoDe(t, d) === i); }).length;
       const fechado = dow(d) === 0 && fechaDomingo(DEP);
       return `<td class="${n || fechado || i >= 0 ? '' : 'zero'} ${[0, 6].includes(dow(d)) ? 'fds' : ''}">${n}</td>`;
-    }).join('')}<td class="res"></td><td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}</tr>`;
+    }).join('')}<td class="res"></td><td class="res"></td>${usados.map(() => '<td class="res"></td>').join('')}<td class="res"></td></tr>`;
   }
   return h + `</tfoot></table>`;
 }
