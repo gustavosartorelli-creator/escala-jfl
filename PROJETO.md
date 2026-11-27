@@ -122,3 +122,5 @@ Maria → Maria Bezerra, May → Mayari (confirmar); linhas sem nome da planilha
 - Tabela esc_portaria; RPCs esc_portaria_listar e esc_portaria_salvar (sql/2026-11-27_portaria.sql). Fim de semana 28–29/11/2026 já gravado (imagem do Gustavo).
 - **Homem: ao menos 1 domingo de folga em cada mês do calendário** (Gustavo, 27/11/2026; substitui o '1 a cada 4 semanas' das premissas). Bloqueia; vale desde dezembro inteiro (não usa `domingoDesde`). O mês só é conferido quando todos os domingos dele estão na escala atual ou na anterior.
 - Setas do período também logo acima e abaixo da grade (`navMini`).
+
+- **Janeiro numa escala só** (27/11/2026): transição = dezembro (01–31/12), janeiro (01–31/01), fevereiro curto (01–15/02); 16 → 15 a partir de 16/02/2027 (sql/2026-11-27_janeiro_inteiro.sql; `PER_ESPECIAIS`). Recepção: intermediário a partir de 16/12 = 09:36–19:00; ordem Yasmin, Ingridy, Marlon, Mayara, Lucas.
